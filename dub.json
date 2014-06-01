@@ -1,0 +1,7 @@
+{
+	"name": "tga",
+	"description": "TGA image format support library",
+	"authors": ["emesx"],
+	"dependencies": {
+	}
+}
