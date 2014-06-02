@@ -10,15 +10,18 @@ alias PixelWriterFunc = void function(File, ref Pixel);
 
 
 void writeImage(File file, ref Image image){
-	writeHeader(file, image.header);
+	writeHeader(file, image);
+	writeIdentification(file, image);
 
 	auto writer = imageWriterFuncMap[image.header.imageType];
 	writer(file, image);
 }
 
 private {
-	void writeHeader(File file, in Header header){
-		write(file, header.idLength);
+	void writeHeader(File file, in Image image){
+		auto header = &image.header;
+
+		write(file, cast(ubyte)(image.identification.length));
 		write(file, header.colorMapType);
 		write(file, header.imageType);
 		write(file, header.colorMapOffset);
@@ -30,6 +33,13 @@ private {
 		write(file, header.height);
 		write(file, header.pixelDepth);
 		write(file, header.imageDescriptor);
+	}
+
+	void writeIdentification(File file, in Image image){
+		if(image.identification.length > 0) {
+			debug writeln("Writing identification of length", image.identification.length);
+			file.rawWrite(image.identification);
+		}
 	}
 }
 
@@ -73,7 +83,6 @@ private {
 			offset += 1;
 
 			if(current == last){
-
 				if(duringRLE){
 					length++;
 					if(length == 128){
@@ -149,10 +158,16 @@ private {
 		write(file, chunk[1]);
 	}
 
+    void write8bit(File file, ref Pixel pixel){
+        uint sum = pixel.r + pixel.g + pixel.b;
+		write(file, cast(ubyte)(sum/3));
+	}
+
     enum pixelWriterFuncMap = [
         32: &write32bit,
         24: &write24bit,
-        16: &write16bit
+        16: &write16bit,
+        8: &write8bit
     ];
 
 }

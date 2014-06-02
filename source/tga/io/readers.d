@@ -1,19 +1,39 @@
 module tga.io.readers;
 
-import std.stdio;
-import tga.model, tga.io.utils;
+import std.exception, std.stdio;
+import tga.model, tga.validation, tga.io.utils;
 
-alias ImageReaderFunc = Image function(File, Header);
+alias ImageReaderFunc = Pixel[] function(File, in Header);
 alias PixelReaderFunc = Pixel function(ubyte[]);
 
 Image readImage(File file){
     Header header = readHeader(file);
-    auto reader = imageReaderFuncMap[header.imageType];
-	return reader(file, header);
+    
+    if(header.imageDescriptor & 0x20){
+        debug writeln("origin is top left");
+    } else {
+        debug writeln("origin is bottom left ");
+    }
+
+    if(header.imageDescriptor & 0x10) {
+        debug writeln("pixels go right to left");
+    } else {
+        debug writeln("pixels go left to right");
+    }
+
+            
+    validateHeader(header);
+
+    ubyte[] identification = readIdentification(file, header);
+    Pixel[] colorMap = readColorMap(file, header);
+    Pixel[] pixels =  imageReaderFuncMap[header.imageType](file, header);
+
+    return Image(header, identification, pixels);
 }
 
 private {
     Header readHeader(File file){
+        // TODO read 18 bytes at once
         Header header;
         header.idLength         = read!ubyte(file);
         header.colorMapType     = read!ColorMapType(file);
@@ -29,15 +49,36 @@ private {
         header.imageDescriptor  = read!ubyte(file);
         return header;
     }
+
+    ubyte[] readIdentification(File file, in Header header){
+        if(header.idLength)
+            return file.rawRead(new ubyte[](header.idLength));
+        else
+            return [];
+    }
+
+    Pixel[] readColorMap(File file, in Header header){
+        if(header.colorMapType == ColorMapType.NOT_PRESENT)
+            return [];
+
+        file.seek(header.colorMapOffset * (header.colorMapDepth / 8) , SEEK_CUR);
+
+        auto pixelReader = pixelReaderFuncMap[header.colorMapDepth];
+        Pixel[] colorMap = new Pixel[](header.colorMapLength);
+
+        foreach(uint i; 0 .. header.colorMapLength){ // TODO till colorMapLenth - colorMapOffset maybe?
+            ubyte[] bytes = file.rawRead(new ubyte[](header.colorMapDepth / 8));
+            colorMap[i] = pixelReader(bytes);
+        }
+
+        return colorMap;
+    }
 }
 
 
 private {
-    Image readUncompressed(File file, Header header){
-        file.seek(header.idLength + header.colorMapType * header.colorMapLength, SEEK_CUR);
-
+    Pixel[] readUncompressed(File file, in Header header){
         Pixel[] pixels = new Pixel[](header.height * header.width);
-        Image image = {header, pixels};
 
         auto pixelReader = pixelReaderFuncMap[header.pixelDepth];
 
@@ -46,14 +87,11 @@ private {
             pixels[i] = pixelReader(bytes);
         }
 
-        return image;
+        return pixels;
     }
 
-   Image readCompressed(File file, Header header){
-       file.seek(header.idLength + header.colorMapType * header.colorMapLength, SEEK_CUR);
-
+    Pixel[] readCompressed(File file, in Header header){
         Pixel[] pixels = new Pixel[](header.height * header.width);
-        Image image = {header, pixels};
 
         auto pixelReader = pixelReaderFuncMap[header.pixelDepth];
 
@@ -81,8 +119,24 @@ private {
             }          
         }
 
-        return image;
+        return pixels; 
     }
+
+ 
+    Pixel[] readUncompressedMapped(File file, in Header header, Pixel[] pixelMap){
+        Pixel[] pixels = new Pixel[](header.height * header.width);
+
+        auto pixelReader = pixelReaderFuncMap[header.pixelDepth];
+
+        foreach(uint i; 0 .. header.height * header.width) {
+            ubyte[] bytes = file.rawRead(new ubyte[](header.pixelDepth / 8));
+            uint mapIndex = 0;// littleEndianToNative!uint(bytes);
+            pixels[i] = pixelMap[mapIndex];
+        }
+
+        return pixels;
+    }
+
 
     enum imageReaderFuncMap = [
         ImageType.UNCOMPRESSED_TRUE_COLOR: &readUncompressed,
@@ -119,9 +173,17 @@ private {
         return pixel;
     }
 
+    Pixel read8bit(ubyte[] chunk){
+        Pixel pixel;
+        pixel.r = pixel.g = pixel.b = chunk[0];
+        pixel.a = 255;
+        return pixel;
+    }
+
     enum pixelReaderFuncMap = [
         32: &read32bit,
         24: &read24bit,
-        16: &read16bit
+        16: &read16bit,
+        8: &read8bit
     ];
 }

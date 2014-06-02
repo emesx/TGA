@@ -20,9 +20,9 @@ struct Header {
     ubyte           idLength;
     ColorMapType    colorMapType;
     ImageType       imageType;
-    ushort          colorMapOffset;
-    ushort          colorMapLength;
-    ubyte           colorMapDepth;		// bits per pixel
+    ushort          colorMapOffset;     // index of first color map entry
+    ushort          colorMapLength;     // number of color map entries
+    ubyte           colorMapDepth;		// bits per pixel (entry)
     ushort          xOrigin;
     ushort          yOrigin;
     ushort          width;
@@ -41,6 +41,7 @@ struct Pixel {
 }
 
 struct Image {
-    Header header;
+    Header  header;
+    ubyte[] identification;
     Pixel[] pixels;
 }
