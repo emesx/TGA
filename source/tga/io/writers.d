@@ -13,6 +13,7 @@ void writeImage(File file, ref Image image){
 	writeHeader(file, image);
 	writeIdentification(file, image);
 
+	normalizeOrigin(image.header, image.pixels);
 	auto writer = imageWriterFuncMap[image.header.imageType];
 	writer(file, image);
 }
@@ -41,6 +42,32 @@ private {
 			file.rawWrite(image.identification);
 		}
 	}
+
+	Pixel[] normalizeOrigin(in Header header, Pixel[] pixels){
+        immutable h = header.height, w = header.width;
+
+        if(!(header.imageDescriptor & 0x20)){
+            debug writeln("saving origin to bottom left");
+
+            foreach(uint y; 0 .. h/2){
+                Pixel[] row1 = pixels[y*w .. (y+1)*w];
+                Pixel[] row2 = pixels[(h-1-y)*w .. (h-y)*w];
+                std.algorithm.swapRanges(row1,row2);
+            }
+        }
+
+
+        if(header.imageDescriptor & 0x10) {
+            debug writeln("saving pixels to right to left");
+
+            foreach(uint y; 0 .. h){
+                Pixel[] row = pixels[y*w .. (y+1)*w];
+                std.algorithm.reverse(row);
+            }
+        }
+
+        return pixels;
+    }
 }
 
 private {

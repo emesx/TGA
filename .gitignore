@@ -1,7 +1,9 @@
 .dub
+bin
 Debug
 
 *.exe
+*.lib
 *.sln
 *.suo
 *.visualdproj

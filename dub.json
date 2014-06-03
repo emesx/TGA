@@ -2,6 +2,24 @@
 	"name": "tga",
 	"description": "TGA image format support library",
 	"authors": ["emesx"],
-	"dependencies": {
-	}
+	
+	"configurations": [
+		{
+			"name": "application",
+			"targetType": "library",
+			"targetPath" : "bin"
+		},
+		{
+			"name": "unittest",
+			"targetType": "executable",
+			"targetPath" : "tests",
+			"buildOptions": ["unittests"],
+			"excludedSourceFiles": ["source/app.d"],
+			"sourcePaths": ["tests/"],
+			"importPaths": ["tests/"],
+			"dependencies": {
+				"dunit": ">=1.0.9"
+			}
+		}
+	]
 }
