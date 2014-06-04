@@ -12,15 +12,13 @@ Image readImage(File file){
     Pixel[] colorMap = readColorMap(file, header);
     Pixel[] pixels   = ImageReaderMap[header.imageType](file, header, colorMap);
 
-    //applyOrigin(header, pixels);
-
     return Image(header, imageId, pixels);
 }
 
 
 package:
 
-/* --- Header and palette ------------------------------------------------------------------------------------------- */
+/* --- Header and color map------------------------------------------------------------------------------------------ */
 
 Header readHeader(File file){
     // TODO read 18 bytes at once
@@ -71,7 +69,12 @@ Pixel[] readColorMap(File file, in Header header){
 /* --- Image data readers ------------------------------------------------------------------------------------------- */
 
 enum ImageReaderMap = [
+    ImageType.UNCOMPRESSED_MAPPED     : &readUncompressed,
+    ImageType.UNCOMPRESSED_GRAYSCALE  : &readUncompressed,
     ImageType.UNCOMPRESSED_TRUE_COLOR : &readUncompressed,
+
+    ImageType.COMPRESSED_MAPPED       : &readCompressed,
+    ImageType.COMPRESSED_GRAYSCALE    : &readCompressed,
     ImageType.COMPRESSED_TRUE_COLOR   : &readCompressed
 ];
 
