@@ -28,8 +28,8 @@ void checkUncompressedReadWrite(string filename){
 
 unittest {
 	immutable filenames = [
-		"resources/targa_24_unmapped_uncompressed.tga",
-		"resources/targa_32_unmapped_uncompressed.tga"
+		"resources/truecolor_24.tga",
+		"resources/truecolor_32.tga"
 	];
 	
 	foreach(filename; filenames){

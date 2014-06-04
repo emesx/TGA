@@ -1,18 +1,20 @@
 {
-	"name": "tga",
-	"description": "TGA image format support library",
-	"authors": ["emesx"],
+	"name" : "tga",
+	"description" : "TGA image format support library",
+	"authors" : ["emesx"],
+	"targetPath" : "bin",
 	
 	"configurations": [
 		{
-			"name": "application",
+			"name" : "application",
 			"targetType": "library",
-			"targetPath" : "bin"
+
 		},
 		{
 			"name": "unittest",
-			"targetType": "executable",
-			"targetPath" : "tests",
+			"targetType" : "executable",
+			"targetName" : "tga-ut",
+			"workingDirectory" : "tests",
 			"buildOptions": ["unittests"],
 			"excludedSourceFiles": ["source/app.d"],
 			"sourcePaths": ["tests/"],
