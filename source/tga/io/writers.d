@@ -12,7 +12,7 @@ void writeImage(File file, ref Image image){
 	writeHeader(file, image);
 	writeId(file, image);
 
-	applyOrigin(image.header, image.pixels);
+	//applyOrigin(image.header, image.pixels);
 	auto writer = imageWriterFuncMap[image.header.imageType];
 	writer(file, image);
 }

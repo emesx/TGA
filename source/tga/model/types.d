@@ -48,3 +48,13 @@ enum ImageType : ubyte {
     COMPRESSED_TRUE_COLOR   = 10,
     COMPRESSED_GRAYSCALE    = 11
 };
+
+enum ImageOrigin { 
+    BOTTOM_LEFT = 0,
+    TOP_LEFT    = 1
+};
+
+enum PixelOrder { 
+    LEFT_TO_RIGHT = 0,
+    RIGHT_TO_LEFT = 1 
+};
