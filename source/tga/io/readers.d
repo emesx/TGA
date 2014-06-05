@@ -83,9 +83,9 @@ Pixel[] readUncompressed(File file, in Header header, Pixel[] colorMap){
     auto pixels = new Pixel[](header.height * header.width);
     auto unpack = PixelUnpackerMap[header.pixelDepth];
 
-    auto handle = (header.colorMapType == ColorMapType.NOT_PRESENT)
-                    ? (ubyte[] b) => unpack(b) 
-                    : (ubyte[] b) => colorMap[sliceToNative!uint(b)] ;
+    auto handle = (isColorMapped(header))
+                    ? (ubyte[] b) => colorMap[sliceToNative!uint(b)]  
+                    : (ubyte[] b) => unpack(b);
     
     foreach(uint i; 0 .. header.height * header.width) {
         ubyte[] bytes = rawRead(file, header.pixelDepth / 8);
@@ -100,9 +100,9 @@ Pixel[] readCompressed(File file, in Header header,  Pixel[] colorMap){
     auto pixels = new Pixel[](header.height * header.width);
     auto unpack = PixelUnpackerMap[header.pixelDepth];
 
-    auto handle = (header.colorMapType == ColorMapType.NOT_PRESENT)
-                    ? (ubyte[] b) => unpack(b) 
-                    : (ubyte[] b) => colorMap[sliceToNative!uint(b)] ;
+    auto handle = (isColorMapped(header))
+                    ? (ubyte[] b) => colorMap[sliceToNative!uint(b)]
+                    : (ubyte[] b) => unpack(b);
 
     uint i = 0;
     while(i < header.height * header.width) {

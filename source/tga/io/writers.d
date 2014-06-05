@@ -50,7 +50,7 @@ Pixel[] buildColorMap(in Image image){
 
     if(!isColorMapped(image.header))
         return [];
-    
+
     auto colorMap = new Pixel[](1);
 
     foreach(const ref Pixel p; image.pixels)
@@ -67,9 +67,8 @@ void writeColorMap(File file, in Header header, Pixel[] colorMap){
 
 	auto pack = PixelPackerMap[header.colorMapDepth];
 
-    foreach(ref Pixel p; colorMap) {
-		pack(file, p);
-	}
+    foreach(ref Pixel p; colorMap)
+        file.rawWrite(pack(p));
 }
 
 
@@ -89,9 +88,8 @@ enum ImageWriterMap = [
 void writeUncompressed(File file, ref Image image, Pixel[] colorMap){
 	auto pack = PixelPackerMap[image.header.pixelDepth];
 
-    foreach(ref Pixel p; image.pixels) {
-		pack(file, p);
-	}
+    foreach(ref Pixel p; image.pixels)
+        file.rawWrite(pack(p));
 }
 
 
@@ -108,9 +106,9 @@ void writeCompressed(File file, ref Image image, Pixel[] colorMap){
 			return;
 
 		write(file, cast(ubyte)((pixels.length-1) & 0x7F));
-		
+
 		foreach(ref Pixel p; pixels)
-			pack(file, p);
+            file.rawWrite(pack(p));
 	}
 
 	void writeRLE(ref Pixel pixel, ubyte times){
@@ -118,7 +116,7 @@ void writeCompressed(File file, ref Image image, Pixel[] colorMap){
 			return;
 
 		write(file, cast(ubyte)((times-1) | 0x80));
-		pack(file, pixel);
+        file.rawWrite(pack(pixel));
 	}
 
 	foreach(uint offset, ref Pixel current; image.pixels[1 .. $]){
@@ -176,34 +174,28 @@ enum PixelPackerMap = [
     32 : &pack32,
     24 : &pack24,
     16 : &pack16,
-    8  : &pack8
+     8 : &pack8
 ];
 
 
-void pack32(File file, ref Pixel pixel){ //TODO packers should take pixel and return slice of ubyte
-	write(file, pixel.b);
-	write(file, pixel.g);
-	write(file, pixel.r);
-	write(file, pixel.a);
+ubyte[] pack32(ref Pixel pixel){
+    return [pixel.b, pixel.g, pixel.r, pixel.a];
 }
 
-void pack24(File file, ref Pixel pixel){
-	write(file, pixel.b);
-	write(file, pixel.g);
-	write(file, pixel.r);
+ubyte[] pack24(ref Pixel pixel){
+	return [pixel.b, pixel.g, pixel.r];
 }
 
-void pack16(File file, ref Pixel pixel){
-	ubyte[2] chunk;
+ubyte[] pack16(ref Pixel pixel){
+	ubyte[] chunk = new ubyte[](2);
 
 	chunk[0] = ((pixel.g & 0x38) << 2) | (pixel.b >> 3);
 	chunk[1] = (pixel.a & 0x80) | ((pixel.r & 0xF8) >> 1) | (pixel.g & 0xC0 >> 6);
 
-	write(file, chunk[0]);
-	write(file, chunk[1]);
+	return chunk;
 }
 
-void pack8(File file, ref Pixel pixel){
+ubyte[] pack8(ref Pixel pixel){
     uint grey = (pixel.r + pixel.g + pixel.b)/3;
-	write(file, cast(ubyte)(grey));
+	return [cast(ubyte)(grey)];
 }

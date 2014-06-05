@@ -2,7 +2,7 @@ module tga.io.utils;
 
 import std.bitmanip, std.stdio, std.traits;
 
-T read(T)(File file) if(isNumeric!T) {
+T read(T)(File file) if(isNumeric!T){
     const auto s = T.sizeof;
     ubyte[s] bytes = file.rawRead(new ubyte[](s));
     return littleEndianToNative!T(bytes);
@@ -18,17 +18,14 @@ ubyte[] rawRead(File file, uint bytes){
 	return file.rawRead(new ubyte[](bytes));
 }
 
-T sliceToNative(T)(ubyte[] bytes){
-	return 0; //TODO implement
+T sliceToNative(T)(ubyte[] slice) if(isNumeric!T) {
+    auto min = (T t1, T t2) => (t1 <= t2) ? t1 : t2;
+
+	const uint s = T.sizeof,
+               l = min(cast(uint)s, slice.length);
+
+    ubyte[s] padded;
+    padded[0 .. l] = slice[0 .. l];	
+
+    return littleEndianToNative!T(padded);
 }
-
-//private string generateSwitch(string s, int[] cases) {
-//    string result = "switch("~s~"){"
-
-//    for(kase; cases){
-//    	result ~= "case " ~ std.conv.to!string(kase)~ ": int " ~ M1 ~ "; }";	
-//    }
-
-//    result ~= "}"     
-//    return result;
-//}

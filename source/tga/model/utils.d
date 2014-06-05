@@ -5,7 +5,9 @@ import tga.model.types, tga.model.validation;
 
 
 pure bool hasAlpha(in Header header){
-	return [16, 32].canFind(header.pixelDepth);
+	 return isColorMapped(header)
+                ? [16, 32].canFind(header.colorMapDepth)
+                : [16, 32].canFind(header.pixelDepth);
 }
 
 pure bool isTrueColor(in Header header){
