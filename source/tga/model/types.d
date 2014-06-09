@@ -3,16 +3,17 @@ module tga.model.types;
 struct Image {
     Header  header;
     ubyte[] id;
+    Pixel[] colorMap;
     Pixel[] pixels;
 }
 
 
 struct Pixel {
-    ubyte[4] bytes;
+    ubyte[4] bytes; //bgra
 
-    @property ref ubyte r() { return bytes[0]; }
+    @property ref ubyte r() { return bytes[2]; } // TODO read-only for consts
     @property ref ubyte g() { return bytes[1]; }
-    @property ref ubyte b() { return bytes[2]; }
+    @property ref ubyte b() { return bytes[0]; }
     @property ref ubyte a() { return bytes[3]; }
 }
 

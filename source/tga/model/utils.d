@@ -1,32 +1,32 @@
 module tga.model.utils;
 
-import std.algorithm;
+import std.algorithm, std.conv;
 import tga.model.types, tga.model.validation;
 
 
 pure bool hasAlpha(in Header header){
-	 return isColorMapped(header)
+    return isColorMapped(header)
                 ? [16, 32].canFind(header.colorMapDepth)
                 : [16, 32].canFind(header.pixelDepth);
 }
 
 pure bool isTrueColor(in Header header){
-	return [ImageType.UNCOMPRESSED_TRUE_COLOR, ImageType.COMPRESSED_TRUE_COLOR].canFind(header.imageType);
+    return [ImageType.UNCOMPRESSED_TRUE_COLOR, ImageType.COMPRESSED_TRUE_COLOR].canFind(header.imageType);
 }
 
 pure bool isColorMapped(in Header header){
-	return [ImageType.UNCOMPRESSED_MAPPED, ImageType.COMPRESSED_MAPPED].canFind(header.imageType);
+    return [ImageType.UNCOMPRESSED_MAPPED, ImageType.COMPRESSED_MAPPED].canFind(header.imageType);
 }
 
 pure bool isGrayScale(in Header header){
-	return [ImageType.UNCOMPRESSED_GRAYSCALE, ImageType.COMPRESSED_GRAYSCALE].canFind(header.imageType);
+    return [ImageType.UNCOMPRESSED_GRAYSCALE, ImageType.COMPRESSED_GRAYSCALE].canFind(header.imageType);
 }
 
 
 /* --- Image Origin and Pixel Order --------------------------------------------------------------------------------- */
 
 pure bool isUpsideDown(in Header header){
-	return getImageOrigin(header) == ImageOrigin.BOTTOM_LEFT;
+    return getImageOrigin(header) == ImageOrigin.BOTTOM_LEFT;
 }
 
 pure ImageOrigin getImageOrigin(in Header header){
@@ -45,7 +45,7 @@ void setImageOrigin(ref Header header, ImageOrigin origin){
 
 
 pure bool isRightToLeft(in Header header){
-	return getPixelOrder(header) == PixelOrder.RIGHT_TO_LEFT;
+    return getPixelOrder(header) == PixelOrder.RIGHT_TO_LEFT;
 }
 
 pure PixelOrder getPixelOrder(in Header header){
@@ -62,10 +62,9 @@ void setPixelOrder(ref Header header, PixelOrder order){
 }
 
 
-
 /** 
  * Transform pixels in-place to a standard row-major, top-to-bottom, left-to-right order.
- * The tranformation to perform depends on the information from the header
+ * The tranformation to perform depends on the information from the header.
  */
 void normalizeOrigin(ref Image image){
     immutable h = image.header.height,
@@ -85,10 +84,41 @@ void normalizeOrigin(ref Image image){
         }
 }
 
+/* --- Color Map ---------------------------------------------------------------------------------------------------- */
+
+ushort indexInColorMap(in Pixel[] colorMap, ref Pixel pixel){
+    // TODO O(n) that should be O(1)
+    foreach(uint idx; 0 .. colorMap.length)
+        if(colorMap[idx] == pixel)
+            return cast(ushort)idx;
+
+    throw new Exception("Pixel color not found in color map: " ~ to!string(pixel));
+}
+
+/**
+ * Construct a color map and assign it to the passed in Image. Update all necessary header fields.
+ */
+void fillColorMap(ref Image image){
+    if(!isColorMapped(image.header))
+        return;
+
+    auto colorMap = new Pixel[](1);
+
+    foreach(ref Pixel p; image.pixels)
+        if(!std.algorithm.canFind(colorMap, p))
+            colorMap ~= p;
+
+    image.colorMap = colorMap;
+    image.header.colorMapType = ColorMapType.PRESENT;
+    image.header.colorMapOffset = 0;
+    image.header.colorMapLength = cast(ushort)(colorMap.length);
+}
+
+
+/* --- Safe house --------------------------------------------------------------------------------------------------- */
 
 void synchronizeImage(ref Image image){
-	validate(image);
-	image.header.idLength = cast(ubyte)(image.id.length);
-	normalizeOrigin(image);
-
+    validate(image);
+    image.header.idLength = cast(ubyte)(image.id.length);
+    normalizeOrigin(image);
 }

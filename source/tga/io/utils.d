@@ -15,13 +15,11 @@ void write(T)(File file, T t) if(isNumeric!T){
 }
 
 ubyte[] rawRead(File file, uint bytes){
-	return file.rawRead(new ubyte[](bytes));
+    return file.rawRead(new ubyte[](bytes));
 }
 
 T sliceToNative(T)(ubyte[] slice) if(isNumeric!T) {
-    auto min = (T t1, T t2) => (t1 <= t2) ? t1 : t2;
-
-	const uint s = T.sizeof,
+    const uint s = T.sizeof,
                l = min(cast(uint)s, slice.length);
 
     ubyte[s] padded;
@@ -29,3 +27,14 @@ T sliceToNative(T)(ubyte[] slice) if(isNumeric!T) {
 
     return littleEndianToNative!T(padded);
 }
+
+ubyte[] nativeToSlice(T)(T t, size_t size) if(isNumeric!T) {
+    const uint l = min(cast(uint)T.sizeof, size);
+
+    ubyte[] padded = new ubyte[](size);
+    padded[0 .. l] = nativeToLittleEndian!T(t);
+
+    return padded; // TODO handle padding
+}
+
+private auto min(T)(T t1, T t2) { return (t1 <= t2) ? t1 : t2; }

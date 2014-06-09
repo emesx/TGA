@@ -12,7 +12,7 @@ Image readImage(File file){
     Pixel[] colorMap = readColorMap(file, header);
     Pixel[] pixels   = ImageReaderMap[header.imageType](file, header, colorMap);
 
-    return Image(header, imageId, pixels);
+    return Image(header, imageId, colorMap, pixels);
 }
 
 
