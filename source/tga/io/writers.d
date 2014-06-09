@@ -177,8 +177,8 @@ ubyte[] pack24(ref Pixel pixel){
 ubyte[] pack16(ref Pixel pixel){
     ubyte[] chunk = new ubyte[](2);
 
-    chunk[0] = ((pixel.g & 0x38) << 2) | (pixel.b >> 3);
-    chunk[1] = (pixel.a & 0x80) | ((pixel.r & 0xF8) >> 1) | (pixel.g & 0xC0 >> 6);
+    chunk[0] = cast(ubyte)((pixel.g << 2) | (pixel.b >> 3));
+    chunk[1] = cast(ubyte)((pixel.a & 0x80) | (pixel.r >> 1) | (pixel.g >> 6));
 
     return chunk;
 }

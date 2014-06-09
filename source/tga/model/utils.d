@@ -98,24 +98,64 @@ ushort indexInColorMap(in Pixel[] colorMap, ref Pixel pixel){
 /**
  * Construct a color map and assign it to the passed in Image. Update all necessary header fields.
  */
-void fillColorMap(ref Image image){
-    if(!isColorMapped(image.header))
-        return;
-
+Pixel[] buildColorMap(Pixel[] pixels){
     auto colorMap = new Pixel[](1);
 
-    foreach(ref Pixel p; image.pixels)
+    foreach(ref Pixel p; pixels)
         if(!std.algorithm.canFind(colorMap, p))
             colorMap ~= p;
 
-    image.colorMap = colorMap;
-    image.header.colorMapType = ColorMapType.PRESENT;
-    image.header.colorMapOffset = 0;
-    image.header.colorMapLength = cast(ushort)(colorMap.length);
+    return colorMap;
 }
 
 
 /* --- Safe house --------------------------------------------------------------------------------------------------- */
+
+Image createImage(Pixel[] pixels, ushort width, ushort height){
+    Header header;
+
+    header.imageType = ImageType.UNCOMPRESSED_TRUE_COLOR;
+    header.setImageOrigin(ImageOrigin.TOP_LEFT);
+    header.setPixelOrder(PixelOrder.LEFT_TO_RIGHT);
+    header.pixelDepth = 32;
+    header.width  = width;
+    header.height = height;
+    
+
+    Image image = {header: header, pixels: pixels};
+    validate(image);
+
+    return image;   
+}
+
+Image createImage(Pixel[] pixels, ushort width, ushort height, ImageType imageType,
+                  ImageOrigin imageOrigin = ImageOrigin.TOP_LEFT, PixelOrder pixelOrder = PixelOrder.LEFT_TO_RIGHT){
+
+    Header header;
+
+    header.imageType = imageType;
+    header.setImageOrigin(imageOrigin);
+    header.setPixelOrder(pixelOrder);
+    header.pixelDepth = 32;
+    header.width  = width;
+    header.height = height;
+
+    Pixel[] colorMap = [];    
+
+    if(isColorMapped(header)){
+        colorMap = buildColorMap(pixels);
+        header.colorMapType   = ColorMapType.PRESENT;
+        header.colorMapLength = cast(ushort)(colorMap.length);
+        header.colorMapDepth  = 32;
+        header.pixelDepth     = colorMap.length < 256 ? 8 : 16;
+    }
+
+
+    Image image = {header: header, colorMap: colorMap, pixels: pixels};
+    validate(image);
+    
+    return image;   
+}
 
 void synchronizeImage(ref Image image){
     validate(image);
