@@ -32,9 +32,9 @@ ubyte[] nativeToSlice(T)(T t, size_t size) if(isNumeric!T) {
     const uint l = min(cast(uint)T.sizeof, size);
 
     ubyte[] padded = new ubyte[](size);
-    padded[0 .. l] = nativeToLittleEndian!T(t);
+    padded[0 .. l] = nativeToLittleEndian!T(t)[0 .. l];
 
-    return padded; // TODO handle padding
+    return padded;
 }
 
 private auto min(T)(T t1, T t2) { return (t1 <= t2) ? t1 : t2; }

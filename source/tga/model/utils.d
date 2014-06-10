@@ -99,7 +99,7 @@ ushort indexInColorMap(in Pixel[] colorMap, ref Pixel pixel){
  * Construct a color map and assign it to the passed in Image. Update all necessary header fields.
  */
 Pixel[] buildColorMap(Pixel[] pixels){
-    auto colorMap = new Pixel[](1);
+    Pixel[] colorMap = [];
 
     foreach(ref Pixel p; pixels)
         if(!std.algorithm.canFind(colorMap, p))
@@ -109,56 +109,64 @@ Pixel[] buildColorMap(Pixel[] pixels){
 }
 
 
-/* --- Safe house --------------------------------------------------------------------------------------------------- */
+/* --- Image factories ---------------------------------------------------------------------------------------------- */
 
+/**
+ * Create an uncompressed true-color image with 32-bit color depth.
+ *
+ * This is the simplest factory function and should be used by default.
+ *
+ * It expects the pixels to be in the classic row-major, left-to-right form, since the created header will have
+ * the origin set to top-left corner with pixels running from left to right. The created image will contain
+ * no color map and no id contents.
+ */
 Image createImage(Pixel[] pixels, ushort width, ushort height){
+    return createImage(pixels, width, height, ImageType.UNCOMPRESSED_TRUE_COLOR, 32);
+}
+
+/**
+ * Create an image of specified type.
+ *
+ * This overload makes it possible to specify the ImageType and pixel bit depth.
+ * It expects the pixels to be in the form specified by imageOrigin and pixelOrder (this function doesn't transform
+ * the pixels, the parameters are for header only).
+ * 
+ * If the imageType is color-mapped then a color map will be constructed from the pixels and assigned to the image;
+ * the header will be updated according to the color map. The input pixels remain unaffected in any case.
+ * The created image will contain no id contents.
+ */
+Image createImage(Pixel[] pixels, ushort width, ushort height, ImageType imageType, ubyte pixelDepth,
+                  ImageOrigin imageOrigin = ImageOrigin.TOP_LEFT,
+                  PixelOrder pixelOrder   = PixelOrder.LEFT_TO_RIGHT){
+
     Header header;
 
-    header.imageType = ImageType.UNCOMPRESSED_TRUE_COLOR;
-    header.setImageOrigin(ImageOrigin.TOP_LEFT);
-    header.setPixelOrder(PixelOrder.LEFT_TO_RIGHT);
-    header.pixelDepth = 32;
-    header.width  = width;
-    header.height = height;
-    
+    header.imageType  = imageType;
+    header.pixelDepth = isGrayScale(header) ? 8 : pixelDepth;
+    header.width      = width;
+    header.height     = height;
+
+    setImageOrigin(header, imageOrigin);
+    setPixelOrder(header, pixelOrder);
 
     Image image = {header: header, pixels: pixels};
-    validate(image);
 
+    if(isColorMapped(header))
+        createColorMapAndUpdate(image);
+
+    validate(image);  
     return image;   
 }
 
-Image createImage(Pixel[] pixels, ushort width, ushort height, ImageType imageType,
-                  ImageOrigin imageOrigin = ImageOrigin.TOP_LEFT, PixelOrder pixelOrder = PixelOrder.LEFT_TO_RIGHT){
+package void createColorMapAndUpdate(ref Image image){
 
-    Header header;
+    auto colorMap = buildColorMap(image.pixels);
+    auto header = &image.header;
 
-    header.imageType = imageType;
-    header.setImageOrigin(imageOrigin);
-    header.setPixelOrder(pixelOrder);
-    header.pixelDepth = 32;
-    header.width  = width;
-    header.height = height;
-
-    Pixel[] colorMap = [];    
-
-    if(isColorMapped(header)){
-        colorMap = buildColorMap(pixels);
-        header.colorMapType   = ColorMapType.PRESENT;
-        header.colorMapLength = cast(ushort)(colorMap.length);
-        header.colorMapDepth  = 32;
-        header.pixelDepth     = colorMap.length < 256 ? 8 : 16;
-    }
-
-
-    Image image = {header: header, colorMap: colorMap, pixels: pixels};
-    validate(image);
-    
-    return image;   
-}
-
-void synchronizeImage(ref Image image){
-    validate(image);
-    image.header.idLength = cast(ubyte)(image.id.length);
-    normalizeOrigin(image);
+    image.colorMap = colorMap;
+    header.colorMapType = ColorMapType.PRESENT;
+    header.colorMapOffset = 0;
+    header.colorMapLength = cast(ushort)(colorMap.length);
+    header.colorMapDepth = header.pixelDepth;
+    header.pixelDepth = colorMap.length < 256 ? 8 : 16;
 }

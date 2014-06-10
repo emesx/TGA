@@ -9,7 +9,7 @@ struct Image {
 
 
 struct Pixel {
-    ubyte[4] bytes; //bgra
+    ubyte[4] bytes;  // BGRA
 
     @property ref ubyte r() { return bytes[2]; } // TODO read-only for consts
     @property ref ubyte g() { return bytes[1]; }
