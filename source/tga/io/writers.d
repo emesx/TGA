@@ -22,10 +22,10 @@ package:
 void writeHeader(File file, in Image image){
     auto header = &image.header;
 
-    write(file, cast(ubyte)(image.id.length));
-    write(file, isColorMapped(image.header) ? ColorMapType.PRESENT : ColorMapType.NOT_PRESENT);
+    write(file, header.idLength);
+    write(file, header.colorMapType);
     write(file, header.imageType);
-    write(file, header.colorMapOffset);      //TODO this should be taken from just-built color map, not from header
+    write(file, header.colorMapOffset);
     write(file, header.colorMapLength);
     write(file, header.colorMapDepth);
     write(file, header.xOrigin);
@@ -47,9 +47,13 @@ void writeColorMap(File file, in Image image){
     if(!isColorMapped(image.header))
         return;
 
-    auto pack = PixelPackerMap[image.header.colorMapDepth];
+    auto pack  = PixelPackerMap[image.header.colorMapDepth];
+    auto empty = new ubyte[](image.header.colorMapDepth/8);
+    
+    foreach(_ ; 0 .. image.header.colorMapOffset)
+        file.rawWrite(empty);
 
-    foreach(Pixel p; image.colorMap) //TODO ref / const ref
+    foreach(Pixel p; image.colorMap)
         file.rawWrite(pack(p));
 }
 
@@ -68,9 +72,10 @@ enum ImageWriterMap = [
 
 
 void writeUncompressed(ref File file, ref Image image){
+    auto pixelByteDepth = image.header.pixelDepth/8;
     auto pack = PixelPackerMap[image.header.pixelDepth];
     auto handle = (isColorMapped(image.header))
-                    ? (ref Pixel p) => nativeToSlice(indexInColorMap(image.colorMap, p), image.header.pixelDepth/8)
+                    ? (ref Pixel p) => nativeToSlice(indexInColorMap(image.colorMap, p), pixelByteDepth)
                     : (ref Pixel p) => pack(p);
 
     foreach(ref Pixel p; image.pixels)
@@ -79,9 +84,10 @@ void writeUncompressed(ref File file, ref Image image){
 
 
 void writeCompressed(ref File file, ref Image image){
+    auto pixelByteDepth = image.header.pixelDepth/8;
     auto pack = PixelPackerMap[image.header.pixelDepth];
     auto handle = (isColorMapped(image.header))
-                    ? (ref Pixel p) => nativeToSlice(indexInColorMap(image.colorMap, p), image.header.pixelDepth/8)
+                    ? (ref Pixel p) => nativeToSlice(indexInColorMap(image.colorMap, p), pixelByteDepth)
                     : (ref Pixel p) => pack(p);
 
     Pixel last   = image.pixels[0];

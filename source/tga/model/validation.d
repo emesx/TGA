@@ -13,13 +13,23 @@ pure void validate(in Image image){
     );
 
     enforce(
+        image.id.length == image.header.idLength,
+        "Image ID size doesn't match size from header"
+    );
+
+    enforce(
         image.colorMap.length < ushort.max,
         "Image color map exceeds maximum length"
     );
 
     enforce(
-        image.header.width * image.header.height == image.pixels.length,
-        "Image pixel count doen't match dimensions from header"
+        image.colorMap.length == image.header.colorMapLength - image.header.colorMapOffset,
+        "Image color map size doesn't match size from header"
+    );
+
+    enforce(
+        image.pixels.length == image.header.width * image.header.height,
+        "Image pixel count doesn't match dimensions from header"
     );
 }
 

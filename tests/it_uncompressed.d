@@ -1,5 +1,5 @@
 /**
- * Integration test for uncompressed images.
+ * Integration test for all sorts of TGA images.
  * The tests reads the images and then saves them. The checksums must be the same.
  */
  
@@ -33,10 +33,16 @@ void checkUncompressedReadWrite(string filename){
 
 unittest {
     immutable filenames = [
-        "grey_8",
-        "truecolor_16",
-        "truecolor_24",
-        "truecolor_32"
+       "grey_8",
+       "grey_8_rle",
+       "mapped_8",
+       "mapped_8_rle",
+       "truecolor_16",
+       "truecolor_16_rle",
+       "truecolor_24",
+       "truecolor_24_rle",
+       "truecolor_32",
+       "truecolor_32_rle"
     ];
     
     foreach(filename; filenames){

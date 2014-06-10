@@ -1,27 +1,29 @@
 {
-	"name" : "tga",
-	"description" : "TGA image format support library",
-	"authors" : ["emesx"],
-	"targetPath" : "bin",
-	
-	"configurations": [
-		{
-			"name" : "application",
-			"targetType": "library",
-
-		},
-		{
-			"name": "unittest",
-			"targetType" : "executable",
-			"targetName" : "tga-ut",
-			"workingDirectory" : "tests",
-			"buildOptions": ["unittests"],
-			"excludedSourceFiles": ["source/app.d"],
-			"sourcePaths": ["tests/"],
-			"importPaths": ["tests/"],
-			"dependencies": {
-				"dunit": ">=1.0.9"
-			}
-		}
-	]
+    "name" : "tga",
+    "description" : "TGA image format support library",
+    "licence"  : "MIT",
+    "copyright": "Copyright 2014 emesx",
+    "homepage" : "https://github.com/emesx/TGA",
+    "authors"  : ["emesx"],
+    
+    "targetPath" : "bin",
+    "configurations": [
+        {
+            "name" : "application",
+            "targetType": "library",
+        },
+        {
+            "name": "unittest",
+            "targetType" : "executable",
+            "targetName" : "tga-ut",
+            "workingDirectory" : "tests",
+            "buildOptions": ["unittests"],
+            "excludedSourceFiles": ["source/app.d"],
+            "sourcePaths": ["tests/"],
+            "importPaths": ["tests/"],
+            "dependencies": {
+                "dunit": ">=1.0.9"
+            }
+        }
+    ]
 }

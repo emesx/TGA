@@ -15,7 +15,7 @@ unittest {
         Pixel([0,0,255,255]), Pixel([0,0,255,255]), Pixel([255,255,255,255])
     ];
 
-    auto image = createImage(pixels, 3, 3, ImageType.COMPRESSED_MAPPED, 32 );
+    auto image = createImage(pixels, 3, 3, ImageType.COMPRESSED_MAPPED, 24 );
 
     File outFile = File("resources/output_scratch.tga", "wb");
     scope(exit) outFile.close();
