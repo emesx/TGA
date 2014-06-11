@@ -4,7 +4,7 @@ import std.stdio;
 import tga.model, tga.io.utils;
 
 
-void writeImage(File file, ref Image image){
+void writeImage(File file, in Image image){
     validate(image);
 
     writeHeader(file, image);
@@ -71,41 +71,41 @@ enum ImageWriterMap = [
 ];
 
 
-void writeUncompressed(ref File file, ref Image image){
+void writeUncompressed(ref File file, in Image image){
     auto pixelByteDepth = image.header.pixelDepth/8;
     auto pack = PixelPackerMap[image.header.pixelDepth];
     auto handle = (isColorMapped(image.header))
-                    ? (ref Pixel p) => nativeToSlice(indexInColorMap(image.colorMap, p), pixelByteDepth)
-                    : (ref Pixel p) => pack(p);
+                    ? (ref const(Pixel) p) => nativeToSlice(indexInColorMap(image.colorMap, p), pixelByteDepth)
+                    : (ref const(Pixel) p) => pack(p);
 
-    foreach(ref Pixel p; image.pixels)
+    foreach(p; image.pixels)
         file.rawWrite(handle(p));
 }
 
 
-void writeCompressed(ref File file, ref Image image){
+void writeCompressed(ref File file, in Image image){
     auto pixelByteDepth = image.header.pixelDepth/8;
     auto pack = PixelPackerMap[image.header.pixelDepth];
     auto handle = (isColorMapped(image.header))
-                    ? (ref Pixel p) => nativeToSlice(indexInColorMap(image.colorMap, p), pixelByteDepth)
-                    : (ref Pixel p) => pack(p);
+                    ? (ref const(Pixel) p) => nativeToSlice(indexInColorMap(image.colorMap, p), pixelByteDepth)
+                    : (ref const(Pixel) p) => pack(p);
 
     Pixel last   = image.pixels[0];
     ubyte length = 1;
     bool  duringRLE  = true;
     uint  chunkStart = 0;
 
-    void writeNormal(Pixel[] pixels){
+    void writeNormal(in Pixel[] pixels){
         if(pixels.length <= 0)
             return;
 
         write(file, cast(ubyte)((pixels.length-1) & 0x7F));
 
-        foreach(ref Pixel p; pixels)
+        foreach(p; pixels)
             file.rawWrite(handle(p));
     }
 
-    void writeRLE(ref Pixel pixel, ubyte times){
+    void writeRLE(in Pixel pixel, ubyte times){
         if(times <= 0)
             return;
 
@@ -113,7 +113,7 @@ void writeCompressed(ref File file, ref Image image){
         file.rawWrite(handle(pixel));
     }
 
-    foreach(uint offset, ref Pixel current; image.pixels[1 .. $]){
+    foreach(offset, current; image.pixels[1 .. $]){
         offset += 1;
 
         if(current == last){
@@ -172,15 +172,15 @@ enum PixelPackerMap = [
 ];
 
 
-ubyte[] pack32(ref Pixel pixel){
-    return pixel.bytes;
+ubyte[] pack32(in Pixel pixel){
+    return pixel.bytes.dup;
 }
 
-ubyte[] pack24(ref Pixel pixel){
-    return pixel.bytes[0 .. 3];
+ubyte[] pack24(in Pixel pixel){
+    return pixel.bytes[0 .. 3].dup;
 }
 
-ubyte[] pack16(ref Pixel pixel){
+ubyte[] pack16(in Pixel pixel){
     ubyte[] chunk = new ubyte[](2);
 
     chunk[0] = cast(ubyte)((pixel.g << 2) | (pixel.b >> 3));
@@ -189,7 +189,7 @@ ubyte[] pack16(ref Pixel pixel){
     return chunk;
 }
 
-ubyte[] pack8(ref Pixel pixel){
+ubyte[] pack8(in Pixel pixel){
     uint grey = (pixel.r + pixel.g + pixel.b)/3;
     return [cast(ubyte)(grey)];
 }

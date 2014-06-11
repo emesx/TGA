@@ -86,7 +86,7 @@ void normalizeOrigin(ref Image image){
 
 /* --- Color Map ---------------------------------------------------------------------------------------------------- */
 
-ushort indexInColorMap(in Pixel[] colorMap, ref Pixel pixel){
+ushort indexInColorMap(in Pixel[] colorMap, in Pixel pixel){
     // TODO O(n) that should be O(1)
     foreach(uint idx; 0 .. colorMap.length)
         if(colorMap[idx] == pixel)
@@ -98,10 +98,10 @@ ushort indexInColorMap(in Pixel[] colorMap, ref Pixel pixel){
 /**
  * Construct a color map and assign it to the passed in Image. Update all necessary header fields.
  */
-Pixel[] buildColorMap(Pixel[] pixels){
+Pixel[] buildColorMap(in Pixel[] pixels){
     Pixel[] colorMap = [];
 
-    foreach(ref Pixel p; pixels)
+    foreach(p; pixels)
         if(!std.algorithm.canFind(colorMap, p))
             colorMap ~= p;
 

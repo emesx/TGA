@@ -11,10 +11,10 @@ struct Image {
 struct Pixel {
     ubyte[4] bytes;  // BGRA
 
-    @property ref ubyte r() { return bytes[2]; } // TODO read-only for consts
-    @property ref ubyte g() { return bytes[1]; }
-    @property ref ubyte b() { return bytes[0]; }
-    @property ref ubyte a() { return bytes[3]; }
+    @property ref auto r() inout { return bytes[2]; }
+    @property ref auto g() inout { return bytes[1]; }
+    @property ref auto b() inout { return bytes[0]; }
+    @property ref auto a() inout { return bytes[3]; }
 }
 
 

@@ -1,6 +1,6 @@
 /**
  * Integration test for all sorts of TGA images.
- * The tests reads the images and then saves them. The checksums must be the same.
+ * The test reads the images and then saves them. The checksums must be the same.
  */
  
 import std.stdio;
@@ -13,7 +13,7 @@ ubyte[4] crc32Of(string filename){
     return crc32Of(cast(ubyte[])(read(filename)));
 }
 
-void checkUncompressedReadWrite(string filename){
+void checkReadWrite(in string filename){
     immutable OUTPUT_FILE = "resources/output.tga";
     
     File file = File(filename);
@@ -47,6 +47,6 @@ unittest {
     
     foreach(filename; filenames){
         writeln("Testing read/write: ", filename);
-        checkUncompressedReadWrite("resources/" ~ filename ~ ".tga");
+        checkReadWrite("resources/" ~ filename ~ ".tga");
     }
 }

@@ -79,7 +79,7 @@ enum ImageReaderMap = [
 ];
 
 
-Pixel[] readUncompressed(File file, in Header header, Pixel[] colorMap){
+Pixel[] readUncompressed(File file, in Header header, in Pixel[] colorMap){
     auto pixels = new Pixel[](header.height * header.width);
     auto unpack = PixelUnpackerMap[header.pixelDepth];
 
@@ -96,7 +96,7 @@ Pixel[] readUncompressed(File file, in Header header, Pixel[] colorMap){
 }
 
 
-Pixel[] readCompressed(File file, in Header header,  Pixel[] colorMap){
+Pixel[] readCompressed(File file, in Header header,  in Pixel[] colorMap){
     auto pixels = new Pixel[](header.height * header.width);
     auto unpack = PixelUnpackerMap[header.pixelDepth];
 
