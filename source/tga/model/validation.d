@@ -44,13 +44,13 @@ pure void validate(in Header header){
 
         enforce(
             [8, 16, 24, 32].canFind(header.colorMapDepth),
-            "Invalid color map pixel depth: " ~ to!string(header.colorMapDepth)
+            "Invalid color map pixel depth: " ~ header.colorMapDepth.text
         );
     }
 
     enforce(
         [0, 8, 16, 24, 32].canFind(header.colorMapDepth),
-        "Invalid color map pixel depth: " ~ to!string(header.colorMapDepth)
+        "Invalid color map pixel depth: " ~ header.colorMapDepth.text
     );
 
     enforce(
@@ -60,7 +60,7 @@ pure void validate(in Header header){
 
     enforce(
         [8, 16, 24, 32].canFind(header.pixelDepth),
-        "Invalid pixel depth: " ~ to!string(header.pixelDepth)
+        "Invalid pixel depth: " ~ header.pixelDepth.text
     );
 }
 

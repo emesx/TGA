@@ -1,21 +1,18 @@
 module tga.io.utils;
 
-import std.bitmanip, std.stdio, std.traits;
+import std.algorithm, std.bitmanip, std.stdio, std.traits;
+
+package:
 
 T read(T)(File file) if(isNumeric!T){
-    const auto s = T.sizeof;
-    ubyte[s] bytes = file.rawRead(new ubyte[](s));
+    ubyte[T.sizeof] bytes;
+    file.rawRead(bytes[]);
     return littleEndianToNative!T(bytes);
 }
 
 void write(T)(File file, T t) if(isNumeric!T){
-    const auto s = T.sizeof;
-    ubyte[s] bytes = nativeToLittleEndian!T(t);
+    ubyte[T.sizeof] bytes = nativeToLittleEndian!T(t);
     file.rawWrite(bytes);
-}
-
-ubyte[] rawRead(File file, uint bytes){
-    return file.rawRead(new ubyte[](bytes));
 }
 
 T sliceToNative(T)(ubyte[] slice) if(isNumeric!T) {
@@ -36,5 +33,3 @@ ubyte[] nativeToSlice(T)(T t, size_t size) if(isNumeric!T) {
 
     return padded;
 }
-
-private auto min(T)(T t1, T t2) { return (t1 <= t2) ? t1 : t2; }

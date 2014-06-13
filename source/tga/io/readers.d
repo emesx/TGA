@@ -41,7 +41,7 @@ Header readHeader(File file){
 
 ubyte[] readId(File file, in Header header){
     if(header.idLength)
-        return rawRead(file, header.idLength);
+        return file.rawRead(new ubyte[header.idLength]);
     else
         return [];
 }
@@ -51,15 +51,17 @@ Pixel[] readColorMap(File file, in Header header){
     if(header.colorMapType == ColorMapType.NOT_PRESENT)
         return [];
 
-    auto pixelReader       = PixelUnpackerMap[header.colorMapDepth];
+    auto unpack   = PixelUnpackerMap[header.colorMapDepth];
+    auto colorMap = new Pixel[](header.colorMapLength);
     auto colorMapByteDepth = header.colorMapDepth / 8; 
-    auto colorMap          = new Pixel[](header.colorMapLength);
+    
 
     file.seek(header.colorMapOffset * colorMapByteDepth , SEEK_CUR);
 
+    ubyte[MAX_BYTE_DEPTH] buffer;
     foreach(uint i; 0 .. (header.colorMapLength - header.colorMapOffset)){
-        ubyte[] bytes = rawRead(file, colorMapByteDepth);
-        colorMap[i]   = pixelReader(bytes);
+        file.rawRead(buffer[0 .. colorMapByteDepth]);
+        colorMap[i] = unpack(buffer[0 .. colorMapByteDepth]);
     }
 
     return colorMap;
@@ -86,10 +88,13 @@ Pixel[] readUncompressed(File file, in Header header, in Pixel[] colorMap){
     auto handle = (isColorMapped(header))
                     ? (ubyte[] b) => colorMap[sliceToNative!uint(b)]  
                     : (ubyte[] b) => unpack(b);
-    
+
+    auto pixelByteDepth = header.pixelDepth / 8;
+
+    ubyte[MAX_BYTE_DEPTH] buffer;
     foreach(uint i; 0 .. header.height * header.width) {
-        ubyte[] bytes = rawRead(file, header.pixelDepth / 8);
-        pixels[i]     = handle(bytes);
+        file.rawRead(buffer[0 .. pixelByteDepth]);
+        pixels[i]  = handle(buffer[0 .. pixelByteDepth]);
     }
 
     return pixels;
@@ -104,29 +109,32 @@ Pixel[] readCompressed(File file, in Header header,  in Pixel[] colorMap){
                     ? (ubyte[] b) => colorMap[sliceToNative!uint(b)]
                     : (ubyte[] b) => unpack(b);
 
+    auto pixelByteDepth = header.pixelDepth / 8;
+
     uint i = 0;
+    ubyte[MAX_BYTE_DEPTH+1] buffer;
     while(i < header.height * header.width) {
-        ubyte[] bytes = rawRead(file, 1 + header.pixelDepth / 8);
-        uint repetions = bytes[0] & 0x7F;
+        file.rawRead(buffer[0 .. pixelByteDepth+1]);
+        uint repetions = buffer[0] & 0x7F;
         
-        pixels[i] = handle(bytes[1 .. $]);
+        pixels[i] = handle(buffer[1 .. pixelByteDepth+1]);
         i++;
 
         /* RLE */
-        if(bytes[0] & 0x80){   
+        if(buffer[0] & 0x80){   
             for (uint j=0; j<repetions; j++, i++) {
-                pixels[i] = handle(bytes[1 .. $]);
+                pixels[i] = handle(buffer[1 .. pixelByteDepth+1]);
             }
         }
 
         /* Normal */
         else {
             for (uint j=0; j<repetions; j++, i++) {
-                bytes = rawRead(file, header.pixelDepth / 8);
-                pixels[i] = handle(bytes);
+                file.rawRead(buffer[0 .. pixelByteDepth]);
+                pixels[i] = handle(buffer);
             }
         }          
-    }
+    } // while
 
     return pixels; 
 }
@@ -141,20 +149,17 @@ enum PixelUnpackerMap = [
      8 : &unpack8
 ];
 
+immutable MAX_BYTE_DEPTH = 4;
+
 Pixel unpack32(in ubyte[] chunk){
     Pixel pixel;
-    pixel.r = chunk[2];
-    pixel.g = chunk[1];
-    pixel.b = chunk[0];
-    pixel.a = chunk[3];
+    pixel.bytes[] = chunk[];
     return pixel;
 }
 
 Pixel unpack24(in ubyte[] chunk){
     Pixel pixel;
-    pixel.r = chunk[2];
-    pixel.g = chunk[1];
-    pixel.b = chunk[0];
+    pixel.bytes[0..3] = chunk[];
     pixel.a = 0xFF;
     return pixel;
 }
@@ -171,6 +176,6 @@ Pixel unpack16(in ubyte[] chunk){
 Pixel unpack8(in ubyte[] chunk){
     Pixel pixel;
     pixel.r = pixel.g = pixel.b = chunk[0];
-    pixel.a = 255;
+    pixel.a = 0xFF;
     return pixel;
 }
