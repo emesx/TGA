@@ -25,11 +25,11 @@ T sliceToNative(T)(ubyte[] slice) if(isNumeric!T) {
     return littleEndianToNative!T(padded);
 }
 
-ubyte[] nativeToSlice(T)(T t, size_t size) if(isNumeric!T) {
+void nativeToSlice(T)(T t, size_t size, ubyte[] slice) if(isNumeric!T) {
     const uint l = min(cast(uint)T.sizeof, size);
 
-    ubyte[] padded = new ubyte[](size);
-    padded[0 .. l] = nativeToLittleEndian!T(t)[0 .. l];
-
-    return padded;
+    slice[0 .. size] = 0;
+    slice[0 .. l] = nativeToLittleEndian!T(t)[0 .. l];
 }
+
+immutable MAX_BYTE_DEPTH = 4;

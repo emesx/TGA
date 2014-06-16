@@ -4,7 +4,7 @@ import std.stdio;
 import tga.model, tga.io.utils;
 
 
-void writeImage(File file, in Image image){
+void writeImage(File file, const ref Image image){
     validate(image);
 
     writeHeader(file, image);
@@ -19,7 +19,7 @@ package:
 
 /* --- Header and color map------------------------------------------------------------------------------------------ */
 
-void writeHeader(File file, in Image image){
+void writeHeader(File file, const ref Image image){
     auto header = &image.header;
 
     write(file, header.idLength);
@@ -37,24 +37,29 @@ void writeHeader(File file, in Image image){
 }
 
 
-void writeId(File file, in Image image){
+void writeId(File file, const ref Image image){
     if(image.id.length > 0)
         file.rawWrite(image.id);
 }
 
 
-void writeColorMap(File file, in Image image){
+void writeColorMap(File file, const ref Image image){
     if(!isColorMapped(image.header))
         return;
 
-    auto pack  = PixelPackerMap[image.header.colorMapDepth];
-    auto empty = new ubyte[](image.header.colorMapDepth/8);
-    
-    foreach(_ ; 0 .. image.header.colorMapOffset)
-        file.rawWrite(empty);
+    ubyte[MAX_BYTE_DEPTH] buffer;
 
-    foreach(Pixel p; image.colorMap)
-        file.rawWrite(pack(p));
+    auto pixelByteDepth = image.header.colorMapDepth/8;
+    auto pack  = PixelPackerMap[image.header.colorMapDepth];
+
+    foreach(_ ; 0 .. image.header.colorMapOffset){
+        file.rawWrite(buffer[0 ..pixelByteDepth]);
+    }
+
+    foreach(Pixel p; image.colorMap){
+        pack(p, buffer);
+        file.rawWrite(buffer[0 .. pixelByteDepth]);
+    }
 }
 
 
@@ -71,29 +76,35 @@ enum ImageWriterMap = [
 ];
 
 
-void writeUncompressed(ref File file, in Image image){
+void writeUncompressed(ref File file, const ref Image image){
+    ubyte[MAX_BYTE_DEPTH] buffer;
+
     auto pixelByteDepth = image.header.pixelDepth/8;
     auto pack = PixelPackerMap[image.header.pixelDepth];
     auto handle = (isColorMapped(image.header))
-                    ? (const ref Pixel p) => nativeToSlice(indexInColorMap(image.colorMap, p), pixelByteDepth)
-                    : (const ref Pixel p) => pack(p);
+                    ? (const ref Pixel p) => nativeToSlice(indexInColorMap(image.colorMap, p), pixelByteDepth, buffer)
+                    : (const ref Pixel p) => pack(p, buffer);
 
-    foreach(p; image.pixels)
-        file.rawWrite(handle(p));
+    foreach(p; image.pixels){
+        handle(p);
+        file.rawWrite(buffer[0 .. pixelByteDepth]);
+    }
 }
 
 
-void writeCompressed(ref File file, in Image image){
+void writeCompressed(ref File file, const ref Image image){
+    ubyte[MAX_BYTE_DEPTH] buffer;
+
+    Pixel last      = image.pixels[0];
+    ubyte length    = 1;
+    bool duringRLE  = true;
+    uint chunkStart = 0;
+
     auto pixelByteDepth = image.header.pixelDepth/8;
     auto pack = PixelPackerMap[image.header.pixelDepth];
     auto handle = (isColorMapped(image.header))
-                    ? (const ref Pixel p) => nativeToSlice(indexInColorMap(image.colorMap, p), pixelByteDepth)
-                    : (const ref Pixel p) => pack(p);
-
-    Pixel last   = image.pixels[0];
-    ubyte length = 1;
-    bool  duringRLE  = true;
-    uint  chunkStart = 0;
+                    ? (const ref Pixel p) => nativeToSlice(indexInColorMap(image.colorMap, p), pixelByteDepth, buffer)
+                    : (const ref Pixel p) => pack(p, buffer);
 
 
     void writeNormal(in Pixel[] pixels){
@@ -102,8 +113,10 @@ void writeCompressed(ref File file, in Image image){
 
         write(file, cast(ubyte)((pixels.length-1) & 0x7F));
 
-        foreach(p; pixels)
-            file.rawWrite(handle(p));
+        foreach(p; pixels){
+            handle(p);
+            file.rawWrite(buffer[0 .. pixelByteDepth]);
+        }
     }
 
 
@@ -112,7 +125,8 @@ void writeCompressed(ref File file, in Image image){
             return;
 
         write(file, cast(ubyte)((times-1) | 0x80));
-        file.rawWrite(handle(pixel));
+        handle(pixel);
+        file.rawWrite(buffer[0 .. pixelByteDepth]);
     }
 
 
@@ -175,24 +189,20 @@ enum PixelPackerMap = [
 ];
 
 
-const(ubyte[]) pack32(const ref Pixel pixel){
-    return pixel.bytes[];
+void pack32(const ref Pixel pixel, ubyte[] buffer){
+    buffer[0 .. 4] = pixel.bytes;
 }
 
-const(ubyte[]) pack24(const ref Pixel pixel){
-    return pixel.bytes[0 .. 3];
+void pack24(const ref Pixel pixel, ubyte[] buffer){
+    buffer[0 .. 3] = pixel.bytes[0 .. 3];
 }
 
-const(ubyte[]) pack16(const ref Pixel pixel){
-    ubyte[] chunk = new ubyte[](2);
-
-    chunk[0] = cast(ubyte)((pixel.g << 2) | (pixel.b >> 3));
-    chunk[1] = cast(ubyte)((pixel.a & 0x80) | (pixel.r >> 1) | (pixel.g >> 6));
-
-    return chunk;
+void pack16(const ref Pixel pixel, ubyte[] buffer){
+    buffer[0] = cast(ubyte)((pixel.g << 2) | (pixel.b >> 3));
+    buffer[1] = cast(ubyte)((pixel.a & 0x80) | (pixel.r >> 1) | (pixel.g >> 6));
 }
 
-const(ubyte[]) pack8(const ref Pixel pixel){
+void pack8(const ref Pixel pixel, ubyte[] buffer){
     uint grey = (pixel.r + pixel.g + pixel.b)/3;
-    return [cast(ubyte)(grey)];
+    buffer[0] = cast(ubyte)(grey);
 }

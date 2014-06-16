@@ -149,8 +149,6 @@ enum PixelUnpackerMap = [
      8 : &unpack8
 ];
 
-immutable MAX_BYTE_DEPTH = 4;
-
 Pixel unpack32(in ubyte[] chunk){
     Pixel pixel;
     pixel.bytes[] = chunk[];
