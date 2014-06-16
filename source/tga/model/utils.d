@@ -1,35 +1,38 @@
 module tga.model.utils;
 
-import std.algorithm, std.conv, std.range;
+import std.algorithm, std.conv;
 import tga.model.types, tga.model.validation;
 
 
-pure nothrow bool hasAlpha(in Header header){
-    return isColorMapped(header)
-                ? only(16, 32).canFind(header.colorMapDepth)
-                : only(16, 32).canFind(header.pixelDepth);
+pure nothrow bool hasAlpha(const ref Header header){
+    return cast(bool)(isColorMapped(header)
+                        ? header.colorMapDepth.among(16, 32)
+                        : header.pixelDepth.among(16, 32));
 }
 
-pure nothrow bool isTrueColor(in Header header){
-    return only(ImageType.UNCOMPRESSED_TRUE_COLOR, ImageType.COMPRESSED_TRUE_COLOR).canFind(header.imageType);
+pure nothrow bool isTrueColor(const ref Header header){
+    return cast(bool) header.imageType.among(ImageType.UNCOMPRESSED_TRUE_COLOR,
+                                             ImageType.COMPRESSED_TRUE_COLOR);
 }
 
-pure nothrow bool isColorMapped(in Header header){
-    return only(ImageType.UNCOMPRESSED_MAPPED, ImageType.COMPRESSED_MAPPED).canFind(header.imageType);
+pure nothrow bool isColorMapped(const ref Header header){
+    return cast(bool) header.imageType.among(ImageType.UNCOMPRESSED_MAPPED,
+                                             ImageType.COMPRESSED_MAPPED);
 }
 
-pure nothrow bool isGrayScale(in Header header){
-    return only(ImageType.UNCOMPRESSED_GRAYSCALE, ImageType.COMPRESSED_GRAYSCALE).canFind(header.imageType);
+pure nothrow bool isGrayScale(const ref Header header){
+    return cast(bool) header.imageType.among(ImageType.UNCOMPRESSED_GRAYSCALE,
+                                             ImageType.COMPRESSED_GRAYSCALE);
 }
 
 
 /* --- Image Origin and Pixel Order --------------------------------------------------------------------------------- */
 
-pure nothrow bool isUpsideDown(in Header header){
+pure nothrow bool isUpsideDown(const ref Header header){
     return getImageOrigin(header) == ImageOrigin.BOTTOM_LEFT;
 }
 
-pure nothrow ImageOrigin getImageOrigin(in Header header){
+pure nothrow ImageOrigin getImageOrigin(const ref Header header){
     return (header.imageDescriptor & 0b0010_0000) 
                 ? ImageOrigin.TOP_LEFT
                 : ImageOrigin.BOTTOM_LEFT;
@@ -44,11 +47,11 @@ nothrow void setImageOrigin(ref Header header, ImageOrigin origin){
 
 
 
-pure nothrow bool isRightToLeft(in Header header){
+pure nothrow bool isRightToLeft(const ref Header header){
     return getPixelOrder(header) == PixelOrder.RIGHT_TO_LEFT;
 }
 
-pure nothrow PixelOrder getPixelOrder(in Header header){
+pure nothrow PixelOrder getPixelOrder(const ref Header header){
     return (header.imageDescriptor & 0b0001_0000) 
                 ? PixelOrder.RIGHT_TO_LEFT
                 : PixelOrder.LEFT_TO_RIGHT;
@@ -86,7 +89,7 @@ void normalizeOrigin(ref Image image){
 
 /* --- Color Map ---------------------------------------------------------------------------------------------------- */
 
-ushort indexInColorMap(in Pixel[] colorMap, in Pixel pixel){
+ushort indexInColorMap(in Pixel[] colorMap, const ref Pixel pixel){
     // TODO O(n) that should be O(1)
     foreach(uint idx; 0 .. colorMap.length)
         if(colorMap[idx] == pixel)

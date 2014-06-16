@@ -1,7 +1,7 @@
 {
     "name" : "tga",
     "description" : "TGA image format support library",
-    "licence"  : "MIT",
+    "license"  : "MIT",
     "copyright": "Copyright 2014 emesx",
     "homepage" : "https://github.com/emesx/TGA",
     "authors"  : ["emesx"],

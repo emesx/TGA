@@ -39,7 +39,7 @@ Header readHeader(File file){
 }
 
 
-ubyte[] readId(File file, in Header header){
+ubyte[] readId(File file, const ref Header header){
     if(header.idLength)
         return file.rawRead(new ubyte[header.idLength]);
     else
@@ -47,7 +47,7 @@ ubyte[] readId(File file, in Header header){
 }
 
 
-Pixel[] readColorMap(File file, in Header header){
+Pixel[] readColorMap(File file, const ref Header header){
     if(header.colorMapType == ColorMapType.NOT_PRESENT)
         return [];
 
@@ -81,7 +81,7 @@ enum ImageReaderMap = [
 ];
 
 
-Pixel[] readUncompressed(File file, in Header header, in Pixel[] colorMap){
+Pixel[] readUncompressed(File file, const ref Header header, in Pixel[] colorMap){
     auto pixels = new Pixel[](header.height * header.width);
     auto unpack = PixelUnpackerMap[header.pixelDepth];
 
@@ -101,7 +101,7 @@ Pixel[] readUncompressed(File file, in Header header, in Pixel[] colorMap){
 }
 
 
-Pixel[] readCompressed(File file, in Header header,  in Pixel[] colorMap){
+Pixel[] readCompressed(File file, const ref Header header,  in Pixel[] colorMap){
     auto pixels = new Pixel[](header.height * header.width);
     auto unpack = PixelUnpackerMap[header.pixelDepth];
 

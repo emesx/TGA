@@ -75,8 +75,8 @@ void writeUncompressed(ref File file, in Image image){
     auto pixelByteDepth = image.header.pixelDepth/8;
     auto pack = PixelPackerMap[image.header.pixelDepth];
     auto handle = (isColorMapped(image.header))
-                    ? (ref const(Pixel) p) => nativeToSlice(indexInColorMap(image.colorMap, p), pixelByteDepth)
-                    : (ref const(Pixel) p) => pack(p);
+                    ? (const ref Pixel p) => nativeToSlice(indexInColorMap(image.colorMap, p), pixelByteDepth)
+                    : (const ref Pixel p) => pack(p);
 
     foreach(p; image.pixels)
         file.rawWrite(handle(p));
@@ -87,13 +87,14 @@ void writeCompressed(ref File file, in Image image){
     auto pixelByteDepth = image.header.pixelDepth/8;
     auto pack = PixelPackerMap[image.header.pixelDepth];
     auto handle = (isColorMapped(image.header))
-                    ? (ref const(Pixel) p) => nativeToSlice(indexInColorMap(image.colorMap, p), pixelByteDepth)
-                    : (ref const(Pixel) p) => pack(p);
+                    ? (const ref Pixel p) => nativeToSlice(indexInColorMap(image.colorMap, p), pixelByteDepth)
+                    : (const ref Pixel p) => pack(p);
 
     Pixel last   = image.pixels[0];
     ubyte length = 1;
     bool  duringRLE  = true;
     uint  chunkStart = 0;
+
 
     void writeNormal(in Pixel[] pixels){
         if(pixels.length <= 0)
@@ -105,6 +106,7 @@ void writeCompressed(ref File file, in Image image){
             file.rawWrite(handle(p));
     }
 
+
     void writeRLE(in Pixel pixel, ubyte times){
         if(times <= 0)
             return;
@@ -112,6 +114,7 @@ void writeCompressed(ref File file, in Image image){
         write(file, cast(ubyte)((times-1) | 0x80));
         file.rawWrite(handle(pixel));
     }
+
 
     foreach(offset, current; image.pixels[1 .. $]){
         offset += 1;
@@ -172,15 +175,15 @@ enum PixelPackerMap = [
 ];
 
 
-ubyte[] pack32(in Pixel pixel){
-    return pixel.bytes.dup;
+const(ubyte[]) pack32(const ref Pixel pixel){
+    return pixel.bytes[];
 }
 
-ubyte[] pack24(in Pixel pixel){
-    return pixel.bytes[0 .. 3].dup;
+const(ubyte[]) pack24(const ref Pixel pixel){
+    return pixel.bytes[0 .. 3];
 }
 
-ubyte[] pack16(in Pixel pixel){
+const(ubyte[]) pack16(const ref Pixel pixel){
     ubyte[] chunk = new ubyte[](2);
 
     chunk[0] = cast(ubyte)((pixel.g << 2) | (pixel.b >> 3));
@@ -189,7 +192,7 @@ ubyte[] pack16(in Pixel pixel){
     return chunk;
 }
 
-ubyte[] pack8(in Pixel pixel){
+const(ubyte[]) pack8(const ref Pixel pixel){
     uint grey = (pixel.r + pixel.g + pixel.b)/3;
     return [cast(ubyte)(grey)];
 }

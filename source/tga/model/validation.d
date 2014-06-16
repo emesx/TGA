@@ -4,7 +4,7 @@ import std.algorithm, std.conv, std.exception;
 import tga.model.types, tga.model.utils;
 
 
-pure void validate(in Image image){
+pure void validate(const ref Image image){
     validate(image.header);
 
     enforce(
@@ -34,7 +34,7 @@ pure void validate(in Image image){
 }
 
 
-pure void validate(in Header header){
+pure void validate(const ref Header header){
 
     if(isColorMapped(header)) {
         enforce(
@@ -43,13 +43,13 @@ pure void validate(in Header header){
         );
 
         enforce(
-            [8, 16, 24, 32].canFind(header.colorMapDepth),
+            header.colorMapDepth.among(8, 16, 24, 32),
             "Invalid color map pixel depth: " ~ header.colorMapDepth.text
         );
     }
 
     enforce(
-        [0, 8, 16, 24, 32].canFind(header.colorMapDepth),
+        header.colorMapDepth.among(0, 8, 16, 24, 32),
         "Invalid color map pixel depth: " ~ header.colorMapDepth.text
     );
 
@@ -59,7 +59,7 @@ pure void validate(in Header header){
     );
 
     enforce(
-        [8, 16, 24, 32].canFind(header.pixelDepth),
+        header.pixelDepth.among(8, 16, 24, 32),
         "Invalid pixel depth: " ~ header.pixelDepth.text
     );
 }
