@@ -20,20 +20,20 @@ package:
 /* --- Header and color map------------------------------------------------------------------------------------------ */
 
 void writeHeader(File file, const ref Image image){
-    auto header = &image.header;
-
-    write(file, header.idLength);
-    write(file, header.colorMapType);
-    write(file, header.imageType);
-    write(file, header.colorMapOffset);
-    write(file, header.colorMapLength);
-    write(file, header.colorMapDepth);
-    write(file, header.xOrigin);
-    write(file, header.yOrigin);
-    write(file, header.width);
-    write(file, header.height);
-    write(file, header.pixelDepth);
-    write(file, header.imageDescriptor);
+    with(image.header){
+        write(file, idLength);
+        write(file, colorMapType);
+        write(file, imageType);
+        write(file, colorMapOffset);
+        write(file, colorMapLength);
+        write(file, colorMapDepth);
+        write(file, xOrigin);
+        write(file, yOrigin);
+        write(file, width);
+        write(file, height);
+        write(file, pixelDepth);
+        write(file, imageDescriptor);
+    }
 }
 
 
@@ -47,7 +47,7 @@ void writeColorMap(File file, const ref Image image){
     if(!isColorMapped(image.header))
         return;
 
-    ubyte[MAX_BYTE_DEPTH] buffer;
+    ubyte[PixelDepth.max/8] buffer;
 
     auto pixelByteDepth = image.header.colorMapDepth/8;
     auto pack  = PixelPackerMap[image.header.colorMapDepth];
@@ -56,7 +56,7 @@ void writeColorMap(File file, const ref Image image){
         file.rawWrite(buffer[0 ..pixelByteDepth]);
     }
 
-    foreach(Pixel p; image.colorMap){
+    foreach(ref p; image.colorMap){
         pack(p, buffer);
         file.rawWrite(buffer[0 .. pixelByteDepth]);
     }
@@ -77,7 +77,7 @@ enum ImageWriterMap = [
 
 
 void writeUncompressed(ref File file, const ref Image image){
-    ubyte[MAX_BYTE_DEPTH] buffer;
+    ubyte[PixelDepth.max/8] buffer;
 
     auto pixelByteDepth = image.header.pixelDepth/8;
     auto pack = PixelPackerMap[image.header.pixelDepth];
@@ -85,7 +85,7 @@ void writeUncompressed(ref File file, const ref Image image){
                     ? (const ref Pixel p) => nativeToSlice(indexInColorMap(image.colorMap, p), pixelByteDepth, buffer)
                     : (const ref Pixel p) => pack(p, buffer);
 
-    foreach(p; image.pixels){
+    foreach(ref p; image.pixels){
         handle(p);
         file.rawWrite(buffer[0 .. pixelByteDepth]);
     }
@@ -93,7 +93,7 @@ void writeUncompressed(ref File file, const ref Image image){
 
 
 void writeCompressed(ref File file, const ref Image image){
-    ubyte[MAX_BYTE_DEPTH] buffer;
+    ubyte[PixelDepth.max/8] buffer;
 
     Pixel last      = image.pixels[0];
     ubyte length    = 1;
@@ -113,7 +113,7 @@ void writeCompressed(ref File file, const ref Image image){
 
         write(file, cast(ubyte)((pixels.length-1) & 0x7F));
 
-        foreach(p; pixels){
+        foreach(ref p; pixels){
             handle(p);
             file.rawWrite(buffer[0 .. pixelByteDepth]);
         }
@@ -130,7 +130,7 @@ void writeCompressed(ref File file, const ref Image image){
     }
 
 
-    foreach(offset, current; image.pixels[1 .. $]){
+    foreach(offset, ref current; image.pixels[1 .. $]){
         offset += 1;
 
         if(current == last){

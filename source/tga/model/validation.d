@@ -1,6 +1,6 @@
 module tga.model.validation;
 
-import std.algorithm, std.conv, std.exception;
+import std.algorithm, std.conv, std.exception, std.traits;
 import tga.model.types, tga.model.utils;
 
 
@@ -43,13 +43,14 @@ pure void validate(const ref Header header){
         );
 
         enforce(
-            header.colorMapDepth.among(8, 16, 24, 32),
+            header.colorMapDepth != ColorMapDepth.NOT_PRESENT 
+                && header.colorMapDepth.among(EnumMembers!ColorMapDepth),
             "Invalid color map pixel depth: " ~ header.colorMapDepth.text
         );
     }
 
     enforce(
-        header.colorMapDepth.among(0, 8, 16, 24, 32),
+        header.colorMapDepth.among(EnumMembers!ColorMapDepth),
         "Invalid color map pixel depth: " ~ header.colorMapDepth.text
     );
 
@@ -59,7 +60,7 @@ pure void validate(const ref Header header){
     );
 
     enforce(
-        header.pixelDepth.among(8, 16, 24, 32),
+        header.pixelDepth.among(EnumMembers!PixelDepth),
         "Invalid pixel depth: " ~ header.pixelDepth.text
     );
 }

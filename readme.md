@@ -2,7 +2,7 @@
 
 TARGA image format support for the [D](http://dlang.org) programming language.
 
-The library is provides simple data types (`Pixel`, `Image` etc.) that might come in handy whenever image processing or synthesis is required. A set of functions to manipulate those types (I/O, transforms and more) is also included.
+The library provides simple data types (`Pixel`, `Image` etc.) that might come in handy whenever image processing or synthesis is required. A set of functions to manipulate those types (I/O, transforms and more) is also included.
 
 The library currently supports any combination of the following:
 

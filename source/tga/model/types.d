@@ -19,17 +19,17 @@ struct Pixel {
 
 
 struct Header {
-    ubyte           idLength;
+    ubyte           idLength;           // length in bytes
     ColorMapType    colorMapType;
     ImageType       imageType;
-    ushort          colorMapOffset;     // index of first color map entry
-    ushort          colorMapLength;     // number of color map entries
-    ubyte           colorMapDepth;      // bits per pixel (entry)
+    ushort          colorMapOffset;     // index of first actual map entry
+    ushort          colorMapLength;     // number of total entries (incl. skipped)
+    ColorMapDepth   colorMapDepth;      // bits per pixel (entry)
     ushort          xOrigin;
     ushort          yOrigin;
     ushort          width;
     ushort          height;
-    ubyte           pixelDepth;         // bits per pixel
+    PixelDepth      pixelDepth;         // bits per pixel
     ubyte           imageDescriptor;
 }
 
@@ -59,3 +59,18 @@ enum PixelOrder {
     LEFT_TO_RIGHT = 0,
     RIGHT_TO_LEFT = 1 
 };
+
+enum PixelDepth : ubyte {
+    BPP8  = 8,
+    BPP16 = 16,
+    BPP24 = 24,
+    BPP32 = 32
+}
+
+enum ColorMapDepth : ubyte {
+    NOT_PRESENT = 0,
+    BPP8  = 8,
+    BPP16 = 16,
+    BPP24 = 24,
+    BPP32 = 32
+}

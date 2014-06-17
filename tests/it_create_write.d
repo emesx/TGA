@@ -20,14 +20,14 @@ immutable OUTPUT_DIR = "resources/generated";
 static  this() { mkdirRecurse(OUTPUT_DIR); }
 static ~this() { rmdirRecurse(OUTPUT_DIR); }
 
-void checkCreateWrite(ImageType type, uint pixelDepth){
+void checkCreateWrite(ImageType type, PixelDepth pixelDepth){
     import std.algorithm, std.conv;
 
     immutable fileName = "test_" ~ to!string(type) ~ "_" ~ to!string(pixelDepth) ~ ".tga";
     immutable filePath = OUTPUT_DIR ~ "/" ~ fileName;
     writeln("Testing create: ", fileName);
 
-    auto image = createImage(PIXELS, 4, 4, type, cast(ubyte)pixelDepth);
+    auto image = createImage(PIXELS, 4, 4, type, pixelDepth);
 
     {
         File outFile = File(filePath, "wb");
@@ -52,24 +52,24 @@ unittest {
     import std.typecons;
 
     immutable cases = [
-        tuple(ImageType.UNCOMPRESSED_TRUE_COLOR, 32),
-        tuple(ImageType.UNCOMPRESSED_TRUE_COLOR, 24),
-        tuple(ImageType.UNCOMPRESSED_TRUE_COLOR, 16),
+        tuple(ImageType.UNCOMPRESSED_TRUE_COLOR, PixelDepth.BPP32),
+        tuple(ImageType.UNCOMPRESSED_TRUE_COLOR, PixelDepth.BPP24),
+        tuple(ImageType.UNCOMPRESSED_TRUE_COLOR, PixelDepth.BPP16),
         
-        tuple(ImageType.COMPRESSED_TRUE_COLOR, 32),
-        tuple(ImageType.COMPRESSED_TRUE_COLOR, 24),
-        tuple(ImageType.COMPRESSED_TRUE_COLOR, 16),
+        tuple(ImageType.COMPRESSED_TRUE_COLOR, PixelDepth.BPP32),
+        tuple(ImageType.COMPRESSED_TRUE_COLOR, PixelDepth.BPP24),
+        tuple(ImageType.COMPRESSED_TRUE_COLOR, PixelDepth.BPP16),
         
-        tuple(ImageType.UNCOMPRESSED_MAPPED, 32),
-        tuple(ImageType.UNCOMPRESSED_MAPPED, 24),
-        tuple(ImageType.UNCOMPRESSED_MAPPED, 16),
+        tuple(ImageType.UNCOMPRESSED_MAPPED, PixelDepth.BPP32),
+        tuple(ImageType.UNCOMPRESSED_MAPPED, PixelDepth.BPP24),
+        tuple(ImageType.UNCOMPRESSED_MAPPED, PixelDepth.BPP16),
         
-        tuple(ImageType.COMPRESSED_MAPPED, 32),
-        tuple(ImageType.COMPRESSED_MAPPED, 24),
-        tuple(ImageType.COMPRESSED_MAPPED, 16),
+        tuple(ImageType.COMPRESSED_MAPPED, PixelDepth.BPP32),
+        tuple(ImageType.COMPRESSED_MAPPED, PixelDepth.BPP24),
+        tuple(ImageType.COMPRESSED_MAPPED, PixelDepth.BPP16),
 
-        tuple(ImageType.UNCOMPRESSED_GRAYSCALE, 8),
-        tuple(ImageType.COMPRESSED_GRAYSCALE, 8)
+        tuple(ImageType.UNCOMPRESSED_GRAYSCALE, PixelDepth.BPP8),
+        tuple(ImageType.COMPRESSED_GRAYSCALE, PixelDepth.BPP8)
     ];
     
     foreach(kase; cases)

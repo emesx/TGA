@@ -31,5 +31,3 @@ void nativeToSlice(T)(T t, size_t size, ubyte[] slice) if(isNumeric!T) {
     slice[0 .. size] = 0;
     slice[0 .. l] = nativeToLittleEndian!T(t)[0 .. l];
 }
-
-immutable MAX_BYTE_DEPTH = 4;

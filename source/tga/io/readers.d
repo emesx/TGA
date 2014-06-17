@@ -28,12 +28,12 @@ Header readHeader(File file){
     header.imageType        = read!ImageType(file);
     header.colorMapOffset   = read!ushort(file);
     header.colorMapLength   = read!ushort(file);
-    header.colorMapDepth    = read!ubyte(file);
+    header.colorMapDepth    = read!ColorMapDepth(file);
     header.xOrigin          = read!ushort(file);
     header.yOrigin          = read!ushort(file);
     header.width            = read!ushort(file);
     header.height           = read!ushort(file);
-    header.pixelDepth       = read!ubyte(file);
+    header.pixelDepth       = read!PixelDepth(file);
     header.imageDescriptor  = read!ubyte(file);
     return header;
 }
@@ -58,7 +58,7 @@ Pixel[] readColorMap(File file, const ref Header header){
 
     file.seek(header.colorMapOffset * colorMapByteDepth , SEEK_CUR);
 
-    ubyte[MAX_BYTE_DEPTH] buffer;
+    ubyte[PixelDepth.max/8] buffer;
     foreach(uint i; 0 .. (header.colorMapLength - header.colorMapOffset)){
         file.rawRead(buffer[0 .. colorMapByteDepth]);
         colorMap[i] = unpack(buffer[0 .. colorMapByteDepth]);
@@ -91,10 +91,10 @@ Pixel[] readUncompressed(File file, const ref Header header, in Pixel[] colorMap
 
     auto pixelByteDepth = header.pixelDepth / 8;
 
-    ubyte[MAX_BYTE_DEPTH] buffer;
-    foreach(uint i; 0 .. header.height * header.width) {
+    ubyte[PixelDepth.max/8] buffer;
+    foreach(ref pixel; pixels) {
         file.rawRead(buffer[0 .. pixelByteDepth]);
-        pixels[i]  = handle(buffer[0 .. pixelByteDepth]);
+        pixel = handle(buffer[0 .. pixelByteDepth]);
     }
 
     return pixels;
@@ -112,7 +112,7 @@ Pixel[] readCompressed(File file, const ref Header header,  in Pixel[] colorMap)
     auto pixelByteDepth = header.pixelDepth / 8;
 
     uint i = 0;
-    ubyte[MAX_BYTE_DEPTH+1] buffer;
+    ubyte[PixelDepth.max/8 + 1] buffer;
     while(i < header.height * header.width) {
         file.rawRead(buffer[0 .. pixelByteDepth+1]);
         uint repetions = buffer[0] & 0x7F;

@@ -1,28 +1,25 @@
 module tga.model.utils;
 
-import std.algorithm, std.conv;
+import std.algorithm, std.conv, std.exception;
 import tga.model.types, tga.model.validation;
 
 
 pure nothrow bool hasAlpha(const ref Header header){
     return cast(bool)(isColorMapped(header)
-                        ? header.colorMapDepth.among(16, 32)
-                        : header.pixelDepth.among(16, 32));
+                        ? header.colorMapDepth.among(ColorMapDepth.BPP16, ColorMapDepth.BPP32)
+                        : header.pixelDepth.among(PixelDepth.BPP16, PixelDepth.BPP32));
 }
 
 pure nothrow bool isTrueColor(const ref Header header){
-    return cast(bool) header.imageType.among(ImageType.UNCOMPRESSED_TRUE_COLOR,
-                                             ImageType.COMPRESSED_TRUE_COLOR);
+    return cast(bool) header.imageType.among(ImageType.UNCOMPRESSED_TRUE_COLOR, ImageType.COMPRESSED_TRUE_COLOR);
 }
 
 pure nothrow bool isColorMapped(const ref Header header){
-    return cast(bool) header.imageType.among(ImageType.UNCOMPRESSED_MAPPED,
-                                             ImageType.COMPRESSED_MAPPED);
+    return cast(bool) header.imageType.among(ImageType.UNCOMPRESSED_MAPPED, ImageType.COMPRESSED_MAPPED);
 }
 
 pure nothrow bool isGrayScale(const ref Header header){
-    return cast(bool) header.imageType.among(ImageType.UNCOMPRESSED_GRAYSCALE,
-                                             ImageType.COMPRESSED_GRAYSCALE);
+    return cast(bool) header.imageType.among(ImageType.UNCOMPRESSED_GRAYSCALE, ImageType.COMPRESSED_GRAYSCALE);
 }
 
 
@@ -77,13 +74,13 @@ void normalizeOrigin(ref Image image){
         foreach(uint y; 0 .. h/2) {
             Pixel[] row1 = image.pixels[y*w .. (y+1)*w];
             Pixel[] row2 = image.pixels[(h-1-y)*w .. (h-y)*w];
-            std.algorithm.swapRanges(row1,row2);
+            swapRanges(row1,row2);
         }
 
     if(image.header.isRightToLeft())
         foreach(uint y; 0 .. h) {
             Pixel[] row = image.pixels[y*w .. (y+1)*w];
-            std.algorithm.reverse(row);
+            reverse(row);
         }
 }
 
@@ -91,11 +88,9 @@ void normalizeOrigin(ref Image image){
 
 ushort indexInColorMap(in Pixel[] colorMap, const ref Pixel pixel){
     // TODO O(n) that should be O(1)
-    foreach(uint idx; 0 .. colorMap.length)
-        if(colorMap[idx] == pixel)
-            return cast(ushort)idx;
-
-    throw new Exception("Pixel color not found in color map: " ~ pixel.text);
+    const index = colorMap.countUntil(pixel);
+    enforce(index >= 0, "Pixel color not found in color map: " ~ pixel.text);
+    return to!ushort(index);
 }
 
 /**
@@ -106,7 +101,7 @@ Pixel[] buildColorMap(in Pixel[] pixels){
     Pixel[] colorMap = [];
 
     foreach(p; pixels)
-        if(!std.algorithm.canFind(colorMap, p))
+        if(!colorMap.canFind(p))
             colorMap ~= p;
 
     return colorMap;
@@ -125,7 +120,7 @@ Pixel[] buildColorMap(in Pixel[] pixels){
  * no color map and no id contents.
  */
 Image createImage(Pixel[] pixels, ushort width, ushort height){
-    return createImage(pixels, width, height, ImageType.UNCOMPRESSED_TRUE_COLOR, 32);
+    return createImage(pixels, width, height, ImageType.UNCOMPRESSED_TRUE_COLOR, PixelDepth.BPP32);
 }
 
 /**
@@ -139,14 +134,14 @@ Image createImage(Pixel[] pixels, ushort width, ushort height){
  * the header will be updated according to the color map. The input pixels remain unaffected in any case.
  * The created image will contain no id contents.
  */
-Image createImage(Pixel[] pixels, ushort width, ushort height, ImageType imageType, ubyte pixelDepth,
+Image createImage(Pixel[] pixels, ushort width, ushort height, ImageType imageType, PixelDepth pixelDepth,
                   ImageOrigin imageOrigin = ImageOrigin.TOP_LEFT,
                   PixelOrder pixelOrder   = PixelOrder.LEFT_TO_RIGHT){
 
     Header header;
 
     header.imageType  = imageType;
-    header.pixelDepth = isGrayScale(header) ? 8 : pixelDepth;
+    header.pixelDepth = isGrayScale(header) ? PixelDepth.BPP8 : pixelDepth;
     header.width      = width;
     header.height     = height;
 
@@ -170,7 +165,7 @@ package void createColorMapAndUpdate(ref Image image){
     image.colorMap = colorMap;
     header.colorMapType = ColorMapType.PRESENT;
     header.colorMapOffset = 0;
-    header.colorMapLength = cast(ushort)(colorMap.length);
-    header.colorMapDepth = header.pixelDepth;
-    header.pixelDepth = colorMap.length < 256 ? 8 : 16;
+    header.colorMapLength = to!ushort(colorMap.length);
+    header.colorMapDepth  = to!ColorMapDepth(to!ubyte(header.pixelDepth));
+    header.pixelDepth = colorMap.length < 256 ? PixelDepth.BPP8 : PixelDepth.BPP16;
 }
