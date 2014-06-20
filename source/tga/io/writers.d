@@ -1,6 +1,6 @@
 module tga.io.writers;
 
-import std.stdio;
+import std.algorithm, std.conv, std.range, std.stdio;
 import tga.model, tga.io.utils;
 
 
@@ -94,87 +94,41 @@ void writeUncompressed(ref File file, const ref Image image){
 
 void writeCompressed(ref File file, const ref Image image){
     ubyte[PixelDepth.max/8] buffer;
-
-    Pixel last      = image.pixels[0];
-    ubyte length    = 1;
-    bool duringRLE  = true;
-    uint chunkStart = 0;
-
     auto pixelByteDepth = image.header.pixelDepth/8;
+    
     auto pack = PixelPackerMap[image.header.pixelDepth];
     auto handle = (isColorMapped(image.header))
-                    ? (const ref Pixel p) => nativeToSlice(indexInColorMap(image.colorMap, p), pixelByteDepth, buffer)
-                    : (const ref Pixel p) => pack(p, buffer);
+                        ? (const ref Pixel p) => nativeToSlice(indexInColorMap(image.colorMap, p), pixelByteDepth, buffer)
+                        : (const ref Pixel p) => pack(p, buffer);
+    
+    auto writePixel = (const ref Pixel p) { handle(p); file.rawWrite(buffer[0 .. pixelByteDepth]); };
 
+    auto pixels = image.pixels[];
+    while(pixels.length) {
+        // Find the first occurrence of two equal pixels next to each other
+        auto nextPixels = pixels.findAdjacent;
 
-    void writeNormal(in Pixel[] pixels){
-        if(pixels.length <= 0)
-            return;
-
-        write(file, cast(ubyte)((pixels.length-1) & 0x7F));
-
-        foreach(ref p; pixels){
-            handle(p);
-            file.rawWrite(buffer[0 .. pixelByteDepth]);
-        }
-    }
-
-
-    void writeRLE(in Pixel pixel, ubyte times){
-        if(times <= 0)
-            return;
-
-        write(file, cast(ubyte)((times-1) | 0x80));
-        handle(pixel);
-        file.rawWrite(buffer[0 .. pixelByteDepth]);
-    }
-
-
-    foreach(offset, ref current; image.pixels[1 .. $]){
-        offset += 1;
-
-        if(current == last){
-            if(duringRLE){
-                length++;
-                if(length == 128){
-                    writeRLE(last, 128);
-                    length = 0;
-                }
-            }
-            else {
-                writeNormal(image.pixels[chunkStart .. chunkStart+length-1]);
-                duringRLE = true;
-                length = 2;
-            }
-
-        } 
-
-        else {
-            if(duringRLE){
-                writeRLE(last, length);
-
-                duringRLE = false;
-                length = 1;
-                chunkStart = offset;
-            }
-            else {
-                length++;
-                if(length == 128){
-                    writeNormal(image.pixels[chunkStart .. chunkStart+128]);
-                    length = 1;
-                    chunkStart = offset;
-                }
-            }
+        // Everything before that point should be written as raw packets.
+        // Max packet size is 128 pixels so make chunks of that size
+        foreach(const ref packet; pixels[0 .. $ - nextPixels.length].chunks(128)) {
+            write(file, to!ubyte(packet.length-1));
+            foreach(const ref p; packet)
+                writePixel(p);
         }
 
-        last = current;
-    } // for
+        // If there are more pixels in the image, the next pixels can be RLE encoded
+        if(nextPixels.length){
+            // Find the point at which the pixel data changes
+            pixels = nextPixels.find!"a!=b"(nextPixels[0]);
 
-    if(duringRLE)
-        writeRLE(last, length);
-    else
-        writeNormal(image.pixels[chunkStart .. chunkStart+length]);
-
+            // Everything before that point should be written as RLE packets
+            foreach(const ref packet; nextPixels[0 .. $ - pixels.length].chunks(128)){
+                write(file, to!ubyte(packet.length-1 | 0x80));
+                writePixel(packet[0]);
+            }
+        }
+        else break;
+    }
 }
 
 

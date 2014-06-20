@@ -5,21 +5,21 @@ import tga.model.types, tga.model.validation;
 
 
 pure nothrow bool hasAlpha(const ref Header header){
-    return cast(bool)(isColorMapped(header)
-                        ? header.colorMapDepth.among(ColorMapDepth.BPP16, ColorMapDepth.BPP32)
-                        : header.pixelDepth.among(PixelDepth.BPP16, PixelDepth.BPP32));
+    return !!(isColorMapped(header)
+                ? header.colorMapDepth.among(ColorMapDepth.BPP16, ColorMapDepth.BPP32)
+                : header.pixelDepth.among(PixelDepth.BPP16, PixelDepth.BPP32));
 }
 
 pure nothrow bool isTrueColor(const ref Header header){
-    return cast(bool) header.imageType.among(ImageType.UNCOMPRESSED_TRUE_COLOR, ImageType.COMPRESSED_TRUE_COLOR);
+    return !!header.imageType.among(ImageType.UNCOMPRESSED_TRUE_COLOR, ImageType.COMPRESSED_TRUE_COLOR);
 }
 
 pure nothrow bool isColorMapped(const ref Header header){
-    return cast(bool) header.imageType.among(ImageType.UNCOMPRESSED_MAPPED, ImageType.COMPRESSED_MAPPED);
+    return !!header.imageType.among(ImageType.UNCOMPRESSED_MAPPED, ImageType.COMPRESSED_MAPPED);
 }
 
 pure nothrow bool isGrayScale(const ref Header header){
-    return cast(bool) header.imageType.among(ImageType.UNCOMPRESSED_GRAYSCALE, ImageType.COMPRESSED_GRAYSCALE);
+    return !!header.imageType.among(ImageType.UNCOMPRESSED_GRAYSCALE, ImageType.COMPRESSED_GRAYSCALE);
 }
 
 
