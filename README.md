@@ -53,3 +53,8 @@ Basic usage includes reading images, manipulating the pixel data, saving the ima
 
 ## TODOs
 - support for TARGA Developer Area
+
+## Further reading
+Most helpful sources when implementing TGA were:
+- http://www.paulbourke.net/dataformats/tga/
+- http://www.dca.fee.unicamp.br/~martino/disciplinas/ea978/tgaffs.pdf
