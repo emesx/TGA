@@ -67,20 +67,33 @@ nothrow void setPixelOrder(ref Header header, PixelOrder order){
  * The tranformation to perform depends on the information from the header.
  */
 void normalizeOrigin(ref Image image){
-    immutable h = image.header.height,
-              w = image.header.width;
+    immutable uint h = image.header.height, w = (image.header.width * image.header.pixelDepth) / 8;
 
     if(image.header.isUpsideDown())
         foreach(uint y; 0 .. h/2) {
-            Pixel[] row1 = image.pixels[y*w .. (y+1)*w];
-            Pixel[] row2 = image.pixels[(h-1-y)*w .. (h-y)*w];
+            ubyte[] row1 = image.pixels[y*w .. (y+1)*w];
+            ubyte[] row2 = image.pixels[(h-1-y)*w .. (h-y)*w];
             swapRanges(row1,row2);
         }
 
     if(image.header.isRightToLeft())
         foreach(uint y; 0 .. h) {
-            Pixel[] row = image.pixels[y*w .. (y+1)*w];
-            reverse(row);
+            switch(image.header.pixelDepth){
+                case PixelDepth.BPP8:
+                    ubyte[] row = image.pixels[y*w .. (y+1)*w];
+                    reverse(row);
+                    break;
+                case PixelDepth.BPP16:
+                    ushort[] row = cast(ushort[])(cast(void[])image.pixels[y*w .. (y+1)*w]);
+                    reverse(row);
+                    break;
+                case PixelDepth.BPP32:
+                    uint[] row = cast(uint[])(cast(void[])image.pixels[y*w .. (y+1)*w]);
+                    reverse(row);
+                    break;
+                default:
+                    break;
+            }
         }
 }
 
@@ -120,7 +133,7 @@ Pixel[] buildColorMap(in Pixel[] pixels){
  * no color map and no id contents.
  */
 Image createImage(Pixel[] pixels, ushort width, ushort height){
-    return createImage(pixels, width, height, ImageType.UNCOMPRESSED_TRUE_COLOR, PixelDepth.BPP32);
+    return createImage(cast(ubyte[])(cast(void[])pixels), width, height, ImageType.UNCOMPRESSED_TRUE_COLOR, PixelDepth.BPP32);
 }
 
 /**
@@ -133,8 +146,10 @@ Image createImage(Pixel[] pixels, ushort width, ushort height){
  * If the imageType is color-mapped then a color map will be constructed from the pixels and assigned to the image;
  * the header will be updated according to the color map. The input pixels remain unaffected in any case.
  * The created image will contain no id contents.
+ *
+ * NOTE: Creating color map currently only works with 32bit images and color maps.
  */
-Image createImage(Pixel[] pixels, ushort width, ushort height, ImageType imageType, PixelDepth pixelDepth,
+Image createImage(ubyte[] pixels, ushort width, ushort height, ImageType imageType, PixelDepth pixelDepth,
                   ImageOrigin imageOrigin = ImageOrigin.TOP_LEFT,
                   PixelOrder pixelOrder   = PixelOrder.LEFT_TO_RIGHT){
 
@@ -148,7 +163,7 @@ Image createImage(Pixel[] pixels, ushort width, ushort height, ImageType imageTy
     setImageOrigin(header, imageOrigin);
     setPixelOrder(header, pixelOrder);
 
-    Image image = {header: header, pixels: pixels};
+    Image image = Image(header, [], [], pixels);
 
     if(isColorMapped(header))
         createColorMapAndUpdate(image);
@@ -156,13 +171,18 @@ Image createImage(Pixel[] pixels, ushort width, ushort height, ImageType imageTy
     validate(image);  
     return image;   
 }
+Image createImage(Pixel[] pixels, ushort width, ushort height, ImageType imageType, PixelDepth pixelDepth,
+                  ImageOrigin imageOrigin = ImageOrigin.TOP_LEFT,
+                  PixelOrder pixelOrder   = PixelOrder.LEFT_TO_RIGHT){
+    return createImage(cast(ubyte[])(cast(void[])pixels), width, height, imageType, pixelDepth, imageOrigin, pixelOrder);
+}
 
 package void createColorMapAndUpdate(ref Image image){
 
-    auto colorMap = buildColorMap(image.pixels);
+    auto colorMap = buildColorMap(cast(Pixel[])(cast(void[])image.pixels));
     auto header = &image.header;
 
-    image.colorMap = colorMap;
+    image.colorMap = cast(ubyte[])(cast(void[])colorMap);
     header.colorMapType = ColorMapType.PRESENT;
     header.colorMapOffset = 0;
     header.colorMapLength = to!ushort(colorMap.length);

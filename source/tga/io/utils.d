@@ -4,14 +4,14 @@ import std.algorithm, std.bitmanip, std.stdio, std.traits;
 
 package:
 
-T read(T)(File file) if(isNumeric!T){
+T read(T)(File file)/+ if(isNumeric!T)+/{
     ubyte[T.sizeof] bytes;
     file.rawRead(bytes[]);
-    return littleEndianToNative!T(bytes);
+    return cast(T)(bytes);
 }
 
-void write(T)(File file, T t) if(isNumeric!T){
-    ubyte[T.sizeof] bytes = nativeToLittleEndian!T(t);
+void write(T)(File file, T t)/+ if(isNumeric!T)+/{
+    ubyte[T.sizeof] bytes = cast(ubyte[])(cast(void*)&t)[0..T.sizeof];
     file.rawWrite(bytes);
 }
 

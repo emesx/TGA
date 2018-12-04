@@ -3,18 +3,29 @@ module tga.io.readers;
 import std.exception, std.stdio;
 import tga.model, tga.io.utils;
 
-
-Image readImage(File file){
+/**
+ * Reads an image file.
+ * If loadExtraFields is true, then it loads the footer and the developer fields.
+ */
+Image readImage(bool loadDeveloperField = false)(File file){
     Header header = readHeader(file);           
     validate(header);
 
     ubyte[] imageId  = readId(file, header);
-    Pixel[] colorMap = readColorMap(file, header);
-    Pixel[] pixels   = ImageReaderMap[header.imageType](file, header, colorMap);
-
-    return Image(header, imageId, colorMap, pixels);
+    ubyte[] colorMap = readColorMap(file, header);
+    ubyte[] pixels   = ImageReaderMap[header.imageType](file, header);
+    static if(loadDeveloperField){
+        Footer footer = readFooter(file);
+        Image image = Image(header, imageId, colorMap, pixels, footer);
+        if(footer.isValid){
+            readDeveloperDirectory(file, image);
+            readDeveloperArea(file, image);
+        }
+        return image;
+    }else{
+        return Image(header, imageId, colorMap, pixels);
+    }
 }
-
 
 package:
 
@@ -22,8 +33,8 @@ package:
 
 Header readHeader(File file){
     // TODO read 18 bytes at once
-    Header header;
-    header.idLength         = read!ubyte(file);
+    Header header = read!Header(file);
+    /*header.idLength         = read!ubyte(file);
     header.colorMapType     = read!ColorMapType(file);
     header.imageType        = read!ImageType(file);
     header.colorMapOffset   = read!ushort(file);
@@ -34,10 +45,33 @@ Header readHeader(File file){
     header.width            = read!ushort(file);
     header.height           = read!ushort(file);
     header.pixelDepth       = read!PixelDepth(file);
-    header.imageDescriptor  = read!ubyte(file);
+    header.imageDescriptor  = read!ubyte(file);*/
     return header;
 }
 
+Footer readFooter(File file){
+    file.seek(Footer.sizeof * -1, SEEK_END);
+    return read!Footer(file);
+}
+
+void readDeveloperDirectory(File file, ref Image image){
+    if(image.footer.developerAreaOffset){
+        file.seek(image.footer.developerAreaOffset);
+        image.developerDirectory ~= read!DevAreaTag(file);
+        ubyte[] buffer = new ubyte[]((image.developerDirectory[0].reserved - 1) * DevAreaTag.sizeof);
+        image.developerDirectory ~= cast(DevAreaTag[])(cast(void[])file.rawRead(buffer));
+    }
+}
+
+void readDeveloperArea(File file, ref Image image){
+    foreach(entry; image.developerDirectory){
+        ubyte[] buffer;
+        file.seek(entry.offset);
+        buffer.length = entry.fieldSize;
+        file.rawRead(buffer);
+        image.developerArea ~= DevArea(buffer);
+    }
+}
 
 ubyte[] readId(File file, const ref Header header){
     if(header.idLength)
@@ -47,11 +81,11 @@ ubyte[] readId(File file, const ref Header header){
 }
 
 
-Pixel[] readColorMap(File file, const ref Header header){
+ubyte[] readColorMap(File file, const ref Header header){
     if(header.colorMapType == ColorMapType.NOT_PRESENT)
         return [];
 
-    auto unpack   = PixelUnpackerMap[header.colorMapDepth];
+    /*auto unpack   = PixelUnpackerMap[header.colorMapDepth];
     auto colorMap = new Pixel[](header.colorMapLength);
     auto colorMapByteDepth = header.colorMapDepth / 8; 
     
@@ -62,9 +96,10 @@ Pixel[] readColorMap(File file, const ref Header header){
     foreach(uint i; 0 .. (header.colorMapLength - header.colorMapOffset)){
         file.rawRead(buffer[0 .. colorMapByteDepth]);
         colorMap[i] = unpack(buffer[0 .. colorMapByteDepth]);
-    }
-
-    return colorMap;
+    }*/
+    
+    //return colorMap;
+    return file.rawRead(new ubyte[(header.colorMapDepth / 8) * header.colorMapLength]);
 }
 
 
@@ -81,57 +116,63 @@ enum ImageReaderMap = [
 ];
 
 
-Pixel[] readUncompressed(File file, const ref Header header, in Pixel[] colorMap){
-    auto pixels = new Pixel[](header.height * header.width);
-    auto unpack = PixelUnpackerMap[header.pixelDepth];
+ubyte[] readUncompressed(File file, const ref Header header){
+    auto pixels = new ubyte[](header.height * header.width * (header.pixelDepth / 8));
+    //auto unpack = PixelUnpackerMap[header.pixelDepth];
 
-    auto handle = (isColorMapped(header))
+    /*auto handle = (isColorMapped(header))
                     ? (ubyte[] b) => colorMap[sliceToNative!uint(b)]  
-                    : (ubyte[] b) => unpack(b);
+                    : (ubyte[] b) => unpack(b);*/
 
-    auto pixelByteDepth = header.pixelDepth / 8;
+    /*auto pixelByteDepth = header.pixelDepth / 8;
 
     ubyte[PixelDepth.max/8] buffer;
     foreach(ref pixel; pixels) {
         file.rawRead(buffer[0 .. pixelByteDepth]);
         pixel = handle(buffer[0 .. pixelByteDepth]);
-    }
+    }*/
 
-    return pixels;
+    //return pixels;
+     return file.rawRead(pixels);
 }
 
 
-Pixel[] readCompressed(File file, const ref Header header,  in Pixel[] colorMap){
-    auto pixels = new Pixel[](header.height * header.width);
-    auto unpack = PixelUnpackerMap[header.pixelDepth];
+ubyte[] readCompressed(File file, const ref Header header){
+    auto pixels = new ubyte[](header.height * header.width);
+    //auto unpack = PixelUnpackerMap[header.pixelDepth];
 
-    auto handle = (isColorMapped(header))
+    /*auto handle = (isColorMapped(header))
                     ? (ubyte[] b) => colorMap[sliceToNative!uint(b)]
-                    : (ubyte[] b) => unpack(b);
+                    : (ubyte[] b) => unpack(b);*/
 
     auto pixelByteDepth = header.pixelDepth / 8;
 
     uint i = 0;
-    ubyte[PixelDepth.max/8 + 1] buffer;
-    while(i < header.height * header.width) {
+    ubyte[5] buffer;
+    ubyte[] buffer0;
+    while(i < header.height * header.width * pixelByteDepth) {
         file.rawRead(buffer[0 .. pixelByteDepth+1]);
         uint repetions = buffer[0] & 0x7F;
         
-        pixels[i] = handle(buffer[1 .. pixelByteDepth+1]);
-        i++;
-
-        /* RLE */
-        if(buffer[0] & 0x80){   
-            for (uint j=0; j<repetions; j++, i++) {
-                pixels[i] = handle(buffer[1 .. pixelByteDepth+1]);
-            }
+        for(int j; j < buffer.length; j++){
+            pixels[i] = buffer[j+1];
+            i++;
         }
 
-        /* Normal */
-        else {
-            for (uint j=0; j<repetions; j++, i++) {
+        
+        if(buffer[0] & 0x80){   /* RLE */
+            for (uint j=0; j < repetions * pixelByteDepth; j++, i++) {
+                pixels[i] = buffer[(j & (pixelByteDepth-1)) + 1];
+            }
+        }else {/* Normal */
+            /*for (uint j=0; j<repetions; j++, i++) {
                 file.rawRead(buffer[0 .. pixelByteDepth]);
                 pixels[i] = handle(buffer);
+            }*/
+            buffer0.length = repetions * pixelByteDepth;
+            file.rawRead(buffer0);
+            for (uint j=0; j < repetions * pixelByteDepth; j++, i++) {
+                pixels[i] = buffer[j];
             }
         }          
     } // while
