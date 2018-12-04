@@ -10,7 +10,7 @@
     "configurations": [
         {
             "name" : "application",
-            "targetType": "library",
+            "targetType": "library"
         },
         {
             "name": "unittest",

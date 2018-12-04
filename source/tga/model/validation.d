@@ -18,17 +18,17 @@ pure void validate(const ref Image image){
     );
 
     enforce(
-        image.colorMap.length < ushort.max,
+        image.colorMap.length / (image.header.colorMapDepth / 8) <= ushort.max,
         "Image color map exceeds maximum length"
     );
 
     enforce(
-        image.colorMap.length == image.header.colorMapLength - image.header.colorMapOffset,
+        image.colorMap.length / (image.header.colorMapDepth / 8) == image.header.colorMapLength - image.header.colorMapOffset,
         "Image color map size doesn't match size from header"
     );
 
     enforce(
-        image.pixels.length == image.header.width * image.header.height,
+        image.pixels.length / (image.header.pixelDepth / 8) == image.header.width * image.header.height,
         "Image pixel count doesn't match dimensions from header"
     );
 }
